@@ -17,7 +17,7 @@ import sys
 import textwrap
 from datetime import datetime
 
-from github import Github, InputFileContent
+from github import Auth, Github, InputFileContent
 
 WRAP_WIDTH = int(os.environ.get("INPUT_WRAP_WIDTH", "50"))
 CSV_PATH = os.environ.get("INPUT_CSV_PATH", "storygraph_export.csv")
@@ -185,7 +185,7 @@ def audible_listening_line():
 
 
 def update_gist(body: str) -> None:
-    gh = Github(auth=Github.Auth.Token(GH_TOKEN))
+    gh = Github(auth=Auth.Token(GH_TOKEN))
     gist = gh.get_gist(GIST_ID)
     filename = next(iter(gist.files))
     gist.edit(files={filename: InputFileContent(body)})
