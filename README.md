@@ -1,6 +1,7 @@
 # storygraph-box
 
 ![CI](https://github.com/chindris-mihai-alexandru/storygraph-box/actions/workflows/ci.yml/badge.svg)
+![Release](https://img.shields.io/github/v/release/chindris-mihai-alexandru/storygraph-box)
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?logo=githubactions&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
