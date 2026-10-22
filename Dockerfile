@@ -5,4 +5,4 @@ RUN pip install --no-cache-dir "audible[cryptography]" PyGithub
 COPY storygraph_box.py /app/storygraph_box.py
 WORKDIR /app
 
-CMD ["python", "storygraph_box.py"]
+CMD ["python", "/app/storygraph_box.py"]
