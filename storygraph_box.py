@@ -140,7 +140,7 @@ def audible_auth():
     mkb79's setup-audible-cli convention, so only those two values ever
     need to live in secrets.
     """
-    auth_file = AUDIBLE_AUTH_FILE
+    auth_file = os.environ.get("AUDIBLE_AUTH_FILE") or AUDIBLE_AUTH_FILE
     if auth_file and os.path.exists(auth_file):
         import audible
 
@@ -185,7 +185,7 @@ def audible_listening_line():
 
 
 def update_gist(body: str) -> None:
-    gh = Github(GH_TOKEN)
+    gh = Github(auth=Github.Auth.Token(GH_TOKEN))
     gist = gh.get_gist(GIST_ID)
     filename = next(iter(gist.files))
     gist.edit(files={filename: InputFileContent(body)})
