@@ -80,11 +80,12 @@ def test_unknown_format_defaults_to_read():
 
 def test_two_field_auth_builds_without_network(monkeypatch):
     monkeypatch.delenv("AUDIBLE_AUTH_FILE", raising=False)
-    monkeypatch.setenv("AUDIBLE_ADP_TOKEN", "fake-adp")
+    fake_adp = "{enc:enc}{key:key}{iv:iv}{name:name}{serial:Mg==}"
+    monkeypatch.setenv("AUDIBLE_ADP_TOKEN", fake_adp)
     monkeypatch.setenv("AUDIBLE_DEVICE_PRIVATE_KEY", "fake-key")
     monkeypatch.setenv("INPUT_AUDIBLE_LOCALE", "uk")
     auth = box.audible_auth()
-    assert auth.adp_token == "fake-adp"
+    assert auth.adp_token == fake_adp
     assert auth.locale.country_code == "uk"
 
 
