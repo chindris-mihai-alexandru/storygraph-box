@@ -49,7 +49,7 @@ def bar(percent: int, size: int = 20) -> str:
 
 def load_rows() -> list[dict]:
     if CSV_PATH and os.path.exists(CSV_PATH):
-        with open(CSV_PATH, newline="", encoding="utf-8") as fh:
+        with open(CSV_PATH, newline="", encoding="utf-8-sig") as fh:
             return list(csv.DictReader(fh))
     return []
 
