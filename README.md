@@ -15,6 +15,8 @@ Update a pinned gist with your latest StoryGraph reads, listens and Audible list
 
 ## Sample output
 
+Fictional data, this block is documentation, not a live readout.
+
 ```
 latest reads
 Currently reading:
@@ -91,7 +93,7 @@ Refresh the CSV export whenever you want fresh data, commit or upload the new fi
 
 ## Notes and honest limitations
 
-- StoryGraph has no official API. This tool uses the official CSV export, which means one manual download per refresh. If StoryGraph ever ships an API, this becomes a ten-line change.
+- StoryGraph has no official API. This tool uses the official CSV export, which means one manual download per refresh. If StoryGraph ever ships an API, this becomes a ten-line change. Show your support on the official roadmap post, [An API](https://roadmap.thestorygraph.com/features/posts/an-api), open since 2021.
 - The CSV export drops moods, pace and reading-journal stats. Blame the export, not the tool.
 - Audible stats come from Audible's internal API through the `audible` package. It works today, it is unofficial, and a one-time external login is all it takes.
 
