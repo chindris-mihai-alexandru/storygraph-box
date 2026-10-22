@@ -1,26 +1,37 @@
 # storygraph-box
 
+![CI](https://github.com/chindris-mihai-alexandru/storygraph-box/actions/workflows/ci.yml/badge.svg)
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?logo=githubactions&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
+[![License, MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+![storygraph-box banner](assets/banner.png)
+
 Update a pinned gist with your latest StoryGraph reads, listens and Audible listening time, in plain text.
 
 📚 A pinned-gist tool for the post-Goodreads era. book-box died with the Goodreads API in December 2020. This one runs on the official StoryGraph CSV export, no scraping, no Cloudflare fights, plus optional Audible listening stats from Audible's internal API via [mkb79/Audible](https://github.com/mkb79/Audible).
 
-Sample output, the actual pinned gist of the author.
+## Sample output
 
 ```
 latest reads
+Currently reading:
+📖 The Name of the Wind by Patrick Rothfuss ████████▍░░░░░░░░░░░ 42%
+
 Recently read:
-Dicţionar englez-român român-englez: pentru toţi by Georgeta Nichifor
-Psihologia poporului român: profilul psihologic al românilor
-într-o monografie cognitiv-experimentală by Daniel David
-Sarmizegetusa, cuib de vulturi by David Sava
-The Divine Comedy by Dante Alighieri
+The Remains of the Day by Kazuo Ishiguro
+Project Hail Mary by Andy Weir
 
 Recently listened:
-Jurnal de razboi 1916-1918 - Maria, Regina Romaniei by Regina Maria
+Dune by Frank Herbert
+The Way of Kings by Brandon Sanderson
 
-2026: 0/5 books
-listened in 2026, 35h 28m on Audible
+2026: 3/12 books
+listened in 2026, 18h 05m on Audible
 ```
+
+Currently reading shows a live progress bar, finished books are split into read and listened by their StoryGraph format, and the footer carries your yearly reading goal and Audible listening time.
 
 ## Setup
 

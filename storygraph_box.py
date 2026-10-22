@@ -12,7 +12,6 @@ from action.yml inputs (INPUT_*) and secrets.
 
 import base64
 import csv
-import glob
 import os
 import textwrap
 from datetime import datetime
@@ -65,7 +64,7 @@ def book_line(row: dict) -> str:
 
 
 def parse_date(value: str):
-    for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y", "%d %b %Y", "%d/%m/%y"):
+    for fmt in ("%Y/%m/%d", "%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y", "%d %b %Y", "%d/%m/%y"):
         try:
             return datetime.strptime(value.strip(), fmt)
         except ValueError:
@@ -150,7 +149,7 @@ def audible_listening_line():
         hours, minutes = divmod(total_minutes, 60)
         year = datetime.now().year
         return f"listened in {year}, {hours}h {minutes:02d}m on Audible"
-    except Exception:
+    except Exception:  # noqa: BLE001, any failure means skip the line gracefully
         return None
 
 
