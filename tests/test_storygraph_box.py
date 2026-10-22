@@ -77,3 +77,19 @@ def test_unknown_format_defaults_to_read():
         fmt = box.pick(row, "format").lower()
         (listened_books if "audio" in fmt else read_books).append(row)
     assert len(read_books) == 1 and not listened_books
+
+def test_two_field_auth_builds_without_network(monkeypatch):
+    monkeypatch.delenv("AUDIBLE_AUTH_FILE", raising=False)
+    monkeypatch.setenv("AUDIBLE_ADP_TOKEN", "fake-adp")
+    monkeypatch.setenv("AUDIBLE_DEVICE_PRIVATE_KEY", "fake-key")
+    monkeypatch.setenv("INPUT_AUDIBLE_LOCALE", "uk")
+    auth = box.audible_auth()
+    assert auth.adp_token == "fake-adp"
+    assert auth.locale.country_code == "uk"
+
+
+def test_no_auth_returns_none(monkeypatch):
+    monkeypatch.delenv("AUDIBLE_AUTH_FILE", raising=False)
+    monkeypatch.delenv("AUDIBLE_ADP_TOKEN", raising=False)
+    monkeypatch.delenv("AUDIBLE_DEVICE_PRIVATE_KEY", raising=False)
+    assert box.audible_auth() is None

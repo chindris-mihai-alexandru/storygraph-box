@@ -34,3 +34,5 @@ runs:
     INPUT_AUDIBLE_LOCALE: ${{ inputs.audible_locale }}
     GH_TOKEN: ${{ secrets.GH_TOKEN }}
     AUDIBLE_AUTH: ${{ secrets.AUDIBLE_AUTH }}
+    AUDIBLE_ADP_TOKEN: ${{ secrets.AUDIBLE_ADP_TOKEN }}
+    AUDIBLE_DEVICE_PRIVATE_KEY: ${{ secrets.AUDIBLE_DEVICE_PRIVATE_KEY }}

@@ -130,13 +130,40 @@ def build_body() -> str:
     return "\n".join(lines)
 
 
+def audible_auth():
+    """Build an Authenticator from the full auth file or the two-field pattern.
+
+    The two-field pattern (adp_token plus device_private_key) follows
+    mkb79's setup-audible-cli convention, so only those two values ever
+    need to live in secrets.
+    """
+    auth_file = AUDIBLE_AUTH_FILE
+    if auth_file and os.path.exists(auth_file):
+        import audible
+
+        return audible.Authenticator.from_file(auth_file)
+    adp = os.environ.get("AUDIBLE_ADP_TOKEN", "")
+    key = os.environ.get("AUDIBLE_DEVICE_PRIVATE_KEY", "")
+    if adp and key:
+        import audible
+
+        return audible.Authenticator.from_dict(
+            {
+                "adp_token": adp,
+                "device_private_key": key,
+                "locale_code": os.environ.get("INPUT_AUDIBLE_LOCALE", "uk"),
+            }
+        )
+    return None
+
+
 def audible_listening_line():
-    if not AUDIBLE_AUTH_FILE or not os.path.exists(AUDIBLE_AUTH_FILE):
+    auth = audible_auth()
+    if auth is None:
         return None
     try:
         import audible
 
-        auth = audible.Authenticator.from_file(AUDIBLE_AUTH_FILE)
         with audible.Client(auth=auth) as client:
             stats = client.get(
                 "1.0/stats/aggregates",
