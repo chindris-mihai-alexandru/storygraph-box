@@ -13,6 +13,7 @@ from action.yml inputs (INPUT_*) and secrets.
 import base64
 import csv
 import os
+import sys
 import textwrap
 from datetime import datetime
 
@@ -178,7 +179,8 @@ def audible_listening_line():
         hours, minutes = divmod(total_minutes, 60)
         year = datetime.now().year
         return f"listened {hours}h {minutes:02d}m in {year} on Audible"
-    except Exception:  # noqa: BLE001, any failure means skip the line gracefully
+    except Exception as error:  # noqa: BLE001, any failure means skip the line gracefully
+        print(f"storygraph-box, Audible stats unavailable, {error}", file=sys.stderr)
         return None
 
 
