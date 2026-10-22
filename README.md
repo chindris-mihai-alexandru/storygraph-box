@@ -19,8 +19,10 @@ Fictional data, this block is documentation, not a live readout.
 
 ```
 latest reads
+
 Currently reading:
-📖 The Name of the Wind by Patrick Rothfuss ████████▍░░░░░░░░░░░ 42%
+The Name of the Wind by Patrick Rothfuss
+████████▍░░░░░░░░░░░ 42%
 
 Recently read:
 The Remains of the Day by Kazuo Ishiguro

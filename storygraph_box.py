@@ -77,7 +77,7 @@ def parse_date(value: str):
 
 def build_body() -> str:
     rows = load_rows()
-    lines = ["latest reads"]
+    lines = ["latest reads", ""]
 
     if not rows:
         lines.append("⏳ waiting for the StoryGraph CSV export")
@@ -99,8 +99,8 @@ def build_body() -> str:
             progress = pick(row, "progress", "progress %", "percent complete")
             digits = "".join(ch for ch in progress if ch.isdigit())
             pct = int(digits[:2] or 0) if digits else 0
-            suffix = f" {bar(pct)} {pct}%" if digits else ""
-            lines.append(f"📖 {book_line(row)}{suffix}")
+            lines.append(book_line(row))
+            lines.append(f"{bar(pct)} {pct}%")
         lines.append("")
 
     finished.sort(key=lambda pair: pair[0], reverse=True)
