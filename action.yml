@@ -26,13 +26,3 @@ inputs:
 runs:
   using: 'docker'
   image: 'Dockerfile'
-  env:
-    INPUT_GIST_ID: ${{ inputs.gist_id }}
-    INPUT_CSV_PATH: ${{ inputs.csv_path }}
-    INPUT_WRAP_WIDTH: ${{ inputs.wrap_width }}
-    INPUT_GOAL_BOOKS: ${{ inputs.goal_books }}
-    INPUT_AUDIBLE_LOCALE: ${{ inputs.audible_locale }}
-    GH_TOKEN: ${{ secrets.GH_TOKEN }}
-    AUDIBLE_AUTH: ${{ secrets.AUDIBLE_AUTH }}
-    AUDIBLE_ADP_TOKEN: ${{ secrets.AUDIBLE_ADP_TOKEN }}
-    AUDIBLE_DEVICE_PRIVATE_KEY: ${{ secrets.AUDIBLE_DEVICE_PRIVATE_KEY }}
