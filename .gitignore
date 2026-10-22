@@ -2,6 +2,6 @@ __pycache__/
 *.pyc
 .env
 audible_auth.json
-*.csv
+/*.csv
 .pytest_cache/
 .ruff_cache/
