@@ -60,6 +60,8 @@ def book_line(row: dict) -> str:
         title = title[len("audiobook "):]
     authors = pick(row, "authors", "author")
     line = f"{title} by {authors}" if authors else title
+    if WRAP_WIDTH <= 0:
+        return line
     return "\n".join(textwrap.wrap(line, WRAP_WIDTH) or [line])
 
 

@@ -95,3 +95,12 @@ def test_no_auth_returns_none(monkeypatch):
     monkeypatch.delenv("AUDIBLE_ADP_TOKEN", raising=False)
     monkeypatch.delenv("AUDIBLE_DEVICE_PRIVATE_KEY", raising=False)
     assert box.audible_auth() is None
+
+
+def test_zero_wrap_keeps_one_line_per_book(monkeypatch):
+    monkeypatch.setattr(box, "WRAP_WIDTH", 0)
+    long_line = "Reality Check: The Irreverent Guide to Outsmarting, Outmanaging, and Outmarketing Your Competition by Guy Kawasaki"
+    rows = [{"title": long_line.replace(" by Guy Kawasaki", ""), "authors": "Guy Kawasaki", "format": "paperback", "read status": "read", "last date read": "2026/01/15"}]
+    line = box.book_line(rows[0])
+    assert line == long_line
+    assert "\n" not in line

@@ -12,7 +12,7 @@ inputs:
     required: false
     default: 'storygraph_export.csv'
   wrap_width:
-    description: 'Wrap book lines at this width, matching ashtom-style gists'
+    description: 'Wrap book lines at this width, matching ashtom-style gists. Set to 0 for one line per book'
     required: false
     default: '50'
   goal_books:
