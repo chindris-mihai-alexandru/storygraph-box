@@ -122,7 +122,7 @@ def build_body() -> str:
     if GOAL_BOOKS:
         year = datetime.now().year
         done = sum(1 for d, _ in finished if d.year == year)
-        stats_footer.append(f"{year}: {done}/{GOAL_BOOKS} books")
+        stats_footer.append(f"read {done} of {GOAL_BOOKS} books in {year}")
     listening = audible_listening_line()
     if listening:
         stats_footer.append(listening)
@@ -177,7 +177,7 @@ def audible_listening_line():
         total_minutes = sum(int(m.get("aggregated_sum") or 0) for m in months) // 60000
         hours, minutes = divmod(total_minutes, 60)
         year = datetime.now().year
-        return f"listened in {year}, {hours}h {minutes:02d}m on Audible"
+        return f"listened {hours}h {minutes:02d}m in {year} on Audible"
     except Exception:  # noqa: BLE001, any failure means skip the line gracefully
         return None
 

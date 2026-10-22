@@ -49,7 +49,7 @@ def test_print_and_digital_go_to_read():
 
 def test_goal_line_counts_current_year():
     body = box.build_body()
-    assert "2026: 3/12 books" in body
+    assert "read 3 of 12 books in 2026" in body
 
 
 def test_no_audible_line_without_auth():

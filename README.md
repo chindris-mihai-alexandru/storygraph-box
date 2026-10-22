@@ -30,8 +30,8 @@ Recently listened:
 Dune by Frank Herbert
 The Way of Kings by Brandon Sanderson
 
-2026: 3/12 books
-listened in 2026, 18h 05m on Audible
+read 3 of 12 books in 2026
+listened 18h 05m in 2026 on Audible
 ```
 
 Currently reading shows a live progress bar, finished books are split into read and listened by their StoryGraph format, and the footer carries your yearly reading goal and Audible listening time.
