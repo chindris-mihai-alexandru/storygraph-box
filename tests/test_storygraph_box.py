@@ -82,7 +82,8 @@ def test_two_field_auth_builds_without_network(monkeypatch):
     monkeypatch.delenv("AUDIBLE_AUTH_FILE", raising=False)
     fake_adp = "{enc:enc}{key:key}{iv:iv}{name:name}{serial:Mg==}"
     monkeypatch.setenv("AUDIBLE_ADP_TOKEN", fake_adp)
-    monkeypatch.setenv("AUDIBLE_DEVICE_PRIVATE_KEY", "fake-key")
+    fake_key = "-----BEGIN RSA PRIVATE KEY-----\nMIIB\n-----END RSA PRIVATE KEY-----\n"
+    monkeypatch.setenv("AUDIBLE_DEVICE_PRIVATE_KEY", fake_key)
     monkeypatch.setenv("INPUT_AUDIBLE_LOCALE", "uk")
     auth = box.audible_auth()
     assert auth.adp_token == fake_adp
