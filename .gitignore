@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+.env
+audible_auth.json
+*.csv

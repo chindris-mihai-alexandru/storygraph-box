@@ -1,0 +1,36 @@
+name: 'storygraph-box'
+description: 'Update a pinned gist with your latest StoryGraph reads, listens and Audible listening time'
+branding:
+  icon: 'book-open'
+  color: 'green'
+inputs:
+  gist_id:
+    description: 'The ID portion of your gist URL'
+    required: true
+  csv_path:
+    description: 'Path to the StoryGraph CSV export committed in your repo'
+    required: false
+    default: 'storygraph_export.csv'
+  wrap_width:
+    description: 'Wrap book lines at this width, matching ashtom-style gists'
+    required: false
+    default: '50'
+  goal_books:
+    description: 'Yearly reading goal in books, shown as YYYY: done/N. Leave empty to hide'
+    required: false
+    default: ''
+  audible_locale:
+    description: 'Audible marketplace locale code, e.g. uk, de, com'
+    required: false
+    default: 'uk'
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  env:
+    INPUT_GIST_ID: ${{ inputs.gist_id }}
+    INPUT_CSV_PATH: ${{ inputs.csv_path }}
+    INPUT_WRAP_WIDTH: ${{ inputs.wrap_width }}
+    INPUT_GOAL_BOOKS: ${{ inputs.goal_books }}
+    INPUT_AUDIBLE_LOCALE: ${{ inputs.audible_locale }}
+    GH_TOKEN: ${{ secrets.GH_TOKEN }}
+    AUDIBLE_AUTH: ${{ secrets.AUDIBLE_AUTH }}
