@@ -4,6 +4,16 @@ All notable changes are listed here, newest first. The release workflow publishe
 
 ## [Unreleased]
 
+## [1.2.3] - 2026-10-24
+
+### Security
+- Decode `AUDIBLE_AUTH` directly into memory instead of writing a predictable, persistent temporary credential file.
+- Redact optional Audible exception details so warnings cannot echo credentials from library errors.
+
+### Verification
+- Remeasure coverage from an erased data file with no excluded production lines.
+- Exercise real PyGithub request serialization, Unicode readback, unchanged content and HTTP failures against a bounded local HTTP server.
+
 ## [1.2.2] - 2026-10-24
 
 ### Fixed

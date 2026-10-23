@@ -13,6 +13,7 @@ from action.yml inputs (INPUT_*) and secrets.
 import base64
 import csv
 import html
+import json
 import os
 import re
 import sys
@@ -203,6 +204,14 @@ def audible_auth():
         import audible
 
         return audible.Authenticator.from_file(auth_file)
+    auth_b64 = os.environ.get("AUDIBLE_AUTH", "")
+    if auth_b64:
+        import audible
+
+        data = json.loads(base64.b64decode(auth_b64, validate=True))
+        if not isinstance(data, dict):
+            raise TypeError("AUDIBLE_AUTH must encode an auth JSON object")
+        return audible.Authenticator.from_dict(data)
     adp = os.environ.get("AUDIBLE_ADP_TOKEN", "")
     key = os.environ.get("AUDIBLE_DEVICE_PRIVATE_KEY", "")
     if adp and key:
@@ -243,7 +252,7 @@ def audible_listening_line():
         year = current_year()
         return f"listened {hours}h {minutes:02d}m in {year} on Audible"
     except Exception as error:  # noqa: BLE001, any failure means skip the line gracefully
-        print(f"storygraph-box, Audible stats unavailable, {error}", file=sys.stderr)
+        print(f"storygraph-box, Audible stats unavailable ({type(error).__name__})", file=sys.stderr)
         return None
 
 
@@ -262,30 +271,7 @@ def update_gist(body: str) -> None:
             raise RuntimeError("Gist readback did not match the rendered body")
 
 
-def restore_audible_auth(dest: str = "/tmp/audible_auth.json") -> None:
-    """Decode the AUDIBLE_AUTH secret to a file and point AUDIBLE_AUTH_FILE at it.
-
-    A malformed secret must not take the whole run down, the Audible line is
-    optional, so it degrades to a warning like every other Audible failure.
-    """
-    auth_b64 = os.environ.get("AUDIBLE_AUTH", "")
-    if not auth_b64:
-        return
-    try:
-        data = base64.b64decode(auth_b64, validate=True)
-    except ValueError as error:
-        print(f"storygraph-box, AUDIBLE_AUTH is not valid base64, {error}", file=sys.stderr)
-        return
-    try:
-        with open(dest, "wb") as fh:
-            fh.write(data)
-        os.environ["AUDIBLE_AUTH_FILE"] = dest
-    except OSError:
-        print("storygraph-box, could not restore optional Audible auth file", file=sys.stderr)
-
-
 def main() -> int:
-    restore_audible_auth()
     try:
         body = build_body()
     except (OSError, ValueError, csv.Error) as error:

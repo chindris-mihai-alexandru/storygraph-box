@@ -120,7 +120,7 @@ Malformed CSV rows, duplicate or empty headers and invalid UTF-8 stop the run be
 | `AUDIBLE_AUTH` | no | base64-encoded `audible` auth file for listening stats |
 | `AUDIBLE_ADP_TOKEN` + `AUDIBLE_DEVICE_PRIVATE_KEY` | no | Alternative two-field Audible auth, same values the [setup-audible-cli](https://github.com/mkb79/setup-audible-cli) action uses |
 
-Audible authentication takes either route. The full auth file is the simplest, while the two-field pattern keeps only the signing credentials in secrets and lets the runner build an ephemeral auth object. If both are present, the auth file wins.
+The base64-encoded `AUDIBLE_AUTH` JSON is decoded directly into memory, never written to a temporary file. Local users can point `AUDIBLE_AUTH_FILE` at their own existing auth file. That file takes precedence, followed by `AUDIBLE_AUTH`, then the two signing credentials. Optional-auth failures report only the exception type, not messages that could contain secrets. A preview can fetch optional listening stats but does not write credentials or update the gist.
 
 ## Run it from your own machine
 

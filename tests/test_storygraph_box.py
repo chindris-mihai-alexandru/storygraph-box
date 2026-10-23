@@ -204,7 +204,9 @@ def test_audible_failure_warns_and_skips(monkeypatch, capsys):
     monkeypatch.setattr(audible, "Client", FakeClient)
     monkeypatch.setattr(FakeClient, "error", RuntimeError("boom"))
     assert box.audible_listening_line() is None
-    assert "Audible stats unavailable, boom" in capsys.readouterr().err
+    warning = capsys.readouterr().err
+    assert "Audible stats unavailable (RuntimeError)" in warning
+    assert "boom" not in warning
 
 
 def test_auth_file_path_is_read_from_the_live_environment(monkeypatch, tmp_path):
@@ -220,24 +222,33 @@ def test_auth_file_path_is_read_from_the_live_environment(monkeypatch, tmp_path)
     assert box.audible_auth() is sentinel
 
 
-def test_restore_audible_auth_decodes_the_secret(monkeypatch, tmp_path):
+def test_base64_auth_is_decoded_in_memory_without_file_writes(monkeypatch):
     import base64
+    from unittest.mock import Mock
 
-    dest = tmp_path / "restored.json"
-    monkeypatch.delenv("AUDIBLE_AUTH_FILE", raising=False)
-    monkeypatch.setenv("AUDIBLE_AUTH", base64.b64encode(b'{"k": 1}').decode())
-    box.restore_audible_auth(str(dest))
-    assert dest.read_bytes() == b'{"k": 1}'
-    assert os.environ["AUDIBLE_AUTH_FILE"] == str(dest)
+    import audible
+
+    payload = {"adp_token": "fictional-token"}
+    monkeypatch.setenv("AUDIBLE_AUTH", base64.b64encode(box.json.dumps(payload).encode()).decode())
+    builder = Mock(return_value=object())
+    monkeypatch.setattr(audible.Authenticator, "from_dict", builder)
+    monkeypatch.setattr("builtins.open", Mock(side_effect=AssertionError("must not write a file")))
+    assert box.audible_auth() is builder.return_value
+    builder.assert_called_once_with(payload)
+    assert not os.environ["AUDIBLE_AUTH_FILE"]
 
 
-def test_corrupt_audible_secret_degrades_instead_of_crashing(monkeypatch, tmp_path, capsys):
-    dest = tmp_path / "restored.json"
-    monkeypatch.delenv("AUDIBLE_AUTH_FILE", raising=False)
-    monkeypatch.setenv("AUDIBLE_AUTH", "!!! not base64 !!!")
-    box.restore_audible_auth(str(dest))
-    assert not dest.exists()
-    assert "AUDIBLE_AUTH is not valid base64" in capsys.readouterr().err
+@pytest.mark.parametrize("encoded", [
+    "!!! not base64 !!!", "bm90LWpzb24=", "W10=", "bnVsbA==", "eyJrIjogMX0=",
+])
+def test_corrupt_audible_secret_degrades_instead_of_crashing(monkeypatch, capsys, encoded):
+    monkeypatch.setenv("AUDIBLE_AUTH", encoded)
+    body = box.build_body()
+    assert body.startswith("latest reads")
+    assert "on Audible" not in body
+    warning = capsys.readouterr().err
+    assert "Audible stats unavailable" in warning
+    assert encoded not in warning
 
 
 def test_footer_follows_the_calendar_year(monkeypatch):
@@ -483,13 +494,16 @@ def test_list_limits_and_order_are_applied_in_renderer(monkeypatch):
     assert "read 12 of 12 books in 2026" in body
 
 
-def test_auth_restore_disk_error_is_optional(monkeypatch, tmp_path, capsys):
-    import base64
+def test_explicit_auth_file_takes_precedence_over_encoded_secret(monkeypatch, tmp_path):
+    import audible
 
-    monkeypatch.setenv("AUDIBLE_AUTH", base64.b64encode(b"{}").decode())
-    box.restore_audible_auth(str(tmp_path / "absent" / "auth.json"))
-    assert "could not restore optional Audible auth file" in capsys.readouterr().err
-    assert not os.environ["AUDIBLE_AUTH_FILE"]
+    auth_file = tmp_path / "user-owned-auth.json"
+    auth_file.write_text("{}")
+    expected = object()
+    monkeypatch.setenv("AUDIBLE_AUTH_FILE", str(auth_file))
+    monkeypatch.setenv("AUDIBLE_AUTH", "invalid encoded fallback must not be used")
+    monkeypatch.setattr(audible.Authenticator, "from_file", lambda _: expected)
+    assert box.audible_auth() is expected
 
 
 def test_partial_two_field_auth_does_not_build_an_authenticator(monkeypatch):
