@@ -38,7 +38,7 @@ jobs:
             --workdir /github/workspace -v "$RUNNER_TEMP/consumer":/github/workspace \
             -e INPUT_CSV_PATH=storygraph_export.csv -e INPUT_GOAL_BOOKS=12 \
             -e INPUT_WRAP_WIDTH=50 -e INPUT_DRY_RUN=true \
-            storygraph-box > out.txt 2> err.txt
+            storygraph-box > out.txt 2> err.txt || { cat err.txt; exit 1; }
           cat out.txt
           grep -qx "latest reads" out.txt
           grep -q "Project Hail Mary by Andy Weir" out.txt
