@@ -39,6 +39,21 @@ listened 18h 05m in 2026 on Audible
 
 Books you are reading right now get their own section, finished books are split into read and listened by their StoryGraph format, and the footer carries your yearly reading goal and Audible listening time. To-read and did-not-finish books are left out on purpose.
 
+### Compact summary
+
+Set `output_style: compact` for an emoji summary. It lists every currently-reading book, including parallel reads, plus the latest finished print and audio titles and the number of finished books represented by the export. This fictional example uses the same fixture as the classic example.
+
+```text
+📖 Reading: The Name of the Wind by Patrick Rothfuss
+🏁 Last read: Project Hail Mary by Andy Weir
+🎧 Last listened: Dune by Frank Herbert
+📅 2026: 3/12 books
+📊 Export: 6 finished books
+⏱️ listened 18h 05m in 2026 on Audible
+```
+
+Further active books appear as `📚 Also reading: Title by Author`. No active-reading line appears when none is in the export. The total counts finished export rows, not lifetime rereads or page totals. Moods, page counts and progress are not guessed. Use an extensionless gist file to preserve line breaks; a Markdown file can collapse a plain-text summary into one paragraph.
+
 ## Setup
 
 ### Prep work
@@ -58,12 +73,14 @@ on:
   schedule:
     - cron: '0 5 * * *'
   workflow_dispatch:
+permissions:
+  contents: read
 jobs:
   update-reads:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: YOUR_USERNAME/storygraph-box@v1
         with:
           gist_id: YOUR_GIST_ID
@@ -73,12 +90,12 @@ jobs:
           AUDIBLE_AUTH: ${{ secrets.AUDIBLE_AUTH }}
 ```
 
-Pin to `@v1` to receive fixes without surprises. `@main` follows unreleased commits.
+Pin to `@v1` for compatible releases or a full commit SHA for immutable builds. `@main` follows unreleased commits.
 
 2. Add the secrets `GH_TOKEN` and, if using Audible, `AUDIBLE_AUTH` (the base64-encoded auth file) in repo Settings, Secrets and variables, Actions.
 3. Run the workflow once, then pin the gist on your profile.
 
-Refresh the CSV export whenever you want fresh data, commit or upload the new file, and the gist updates on the next run. The daily cron keeps timestamps honest even when nothing changed.
+Refresh the CSV export whenever you want fresh data, commit or upload the new file, and the gist updates on the next run. The daily cron refreshes optional Audible stats. Unchanged gist content skips the write, so its update timestamp reflects content changes, not merely a successful check.
 
 ## Inputs
 
@@ -88,11 +105,12 @@ Refresh the CSV export whenever you want fresh data, commit or upload the new fi
 | `csv_path` | no | `storygraph_export.csv` | Path to the committed export |
 | `wrap_width` | no | `50` | Book line wrap width, ashtom-style, `0` keeps one line per book |
 | `title_max` | no | `0` | Drop a subtitle when a line is longer than this and the short form fits, so the pinned card does not clip it. About `52` suits the card, `0` keeps full titles |
+| `output_style` | no | `classic` | Grouped classic lists or a compact emoji summary with parallel reads and export totals |
 | `goal_books` | no | hidden | Yearly goal, renders `read done of N books in YYYY` |
 | `audible_locale` | no | `uk` | Your Audible marketplace code |
 | `dry_run` | no | `false` | Print the rendered gist to the log and leave the gist alone, handy for previewing |
 
-Malformed CSV rows, duplicate or empty headers and invalid UTF-8 stop the run before any gist write. The target must be a single-file gist. Unchanged content is not rewritten, and changed content is read back from GitHub before success is reported.
+Malformed CSV rows, duplicate or empty headers and invalid UTF-8 stop the run before any gist write. The target must be a single-file gist. An exact initial GET verifies unchanged content without a write. Changed content is read back from GitHub before success is reported.
 
 ## Secrets
 
@@ -113,6 +131,19 @@ uv run --no-project --with-requirements requirements.txt python storygraph_box.p
 ```
 
 Pass the same inputs as environment variables with an `INPUT_` prefix, for example `INPUT_CSV_PATH`, `INPUT_GIST_ID`, `INPUT_GOAL_BOOKS` and `INPUT_WRAP_WIDTH`, plus `GH_TOKEN` with the gist scope. Set `INPUT_DRY_RUN=true` to print the result instead of updating the gist.
+
+## Monitoring a monthly sync on macOS
+
+`sync_monitor.py` is a standard-library-only companion, separate from the Docker Action. Install a copy on the internal disk together with its state, then run `check` from a user LaunchAgent at login and daily. This keeps monitoring available even when an external project volume is inaccessible. Never grant broad disk access just to read a heartbeat.
+
+```sh
+python3 sync_monitor.py due --state-dir "$HOME/Library/Application Support/storygraph-box-monitor"
+python3 sync_monitor.py check --state-dir "$HOME/Library/Application Support/storygraph-box-monitor"
+```
+
+Call `record` with the same state directory only after the export sync and verified gist update succeed, never after a preview. It stores a timestamp and `verified` marker, not books or credentials. From day eight of a month without a verified success, `check` writes `needs-attention.txt` and attempts a macOS notification once per day. A notification is best effort, not proof someone saw it. `--no-notify` and `--now` support reproducible tests.
+
+The code is tested with Python 3.12 and 3.14, and the installed monitor also supports macOS Python 3.9. The 100% coverage gate measures both Python modules, not external-service uptime, workflow files or OS permissions. Docker smoke tests and live checks cover different boundaries.
 
 ## Keeping the export fresh
 

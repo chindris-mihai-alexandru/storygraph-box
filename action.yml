@@ -19,8 +19,12 @@ inputs:
     description: 'Drop a title subtitle when a line is longer than this many characters and the short form fits. 0 keeps full titles. About 52 suits the pinned card'
     required: false
     default: '0'
+  output_style:
+    description: 'classic for grouped lists, compact for an emoji summary including all parallel reads and finished-book totals'
+    required: false
+    default: 'classic'
   goal_books:
-    description: 'Yearly reading goal in books, shown as YYYY: done/N. Leave empty to hide'
+    description: 'Yearly reading goal in books. Leave empty to hide the classic goal line'
     required: false
     default: ''
   audible_locale:

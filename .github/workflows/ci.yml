@@ -8,18 +8,27 @@ on:
   schedule:
     - cron: '0 6 * * 1'
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        python: ['3.12', '3.14']
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
-          python-version: '3.12'
+          python-version: ${{ matrix.python }}
       - name: Install dependencies
         run: pip install -r requirements-dev.txt
       - name: Lint
-        run: ruff check storygraph_box.py tests
+        run: |
+          ruff check storygraph_box.py tests
+          ruff check --target-version py39 sync_monitor.py
       - name: Test with line and branch coverage
         run: |
           coverage run -m pytest -q

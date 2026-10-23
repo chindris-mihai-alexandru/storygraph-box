@@ -4,6 +4,20 @@ All notable changes are listed here, newest first. The release workflow publishe
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-24
+
+### Added
+- Optional `compact` output with emoji labels, every parallel current read, latest print and audio finishes, and a clearly scoped finished-book count from the export. Classic output remains the default.
+- A model-free monthly sync monitor that can run from an internal-disk installation with only a verified-success timestamp. It persists overdue alerts, retries failed notifications and avoids overlapping checks.
+
+### Fixed
+- Invalid or incomplete Audible responses no longer render as plausible zero listening time.
+- Test configuration is reset for every test without leaking changes into the caller's environment.
+
+### Verification
+- Branch coverage now includes both the renderer and the monitor, with a 100% gate. CI tests Python 3.12 and 3.14 with read-only repository permissions.
+- An intentionally incomplete run fails the coverage gate, and the full suite passes in reverse order.
+
 ## [1.1.1] - 2026-10-24
 
 ### Fixed

@@ -28,6 +28,7 @@ GIST_ID = os.environ.get("INPUT_GIST_ID") or os.environ.get("GIST_ID", "")
 GH_TOKEN = os.environ.get("GH_TOKEN", "")
 AUDIBLE_AUTH_FILE = os.environ.get("AUDIBLE_AUTH_FILE", "")
 GOAL_BOOKS = os.environ.get("INPUT_GOAL_BOOKS", "").strip()
+OUTPUT_STYLE = os.environ.get("INPUT_OUTPUT_STYLE", "classic").strip() or "classic"
 REQUIRED_COLUMNS = ("title", "read status")
 KNOWN_STATUSES = {"read", "finished", "currently reading", "to read", "did not finish"}
 
@@ -139,6 +140,11 @@ def build_body() -> str:
         fmt = pick(row, "format").lower()
         (listened_books if "audio" in fmt else read_books).append(row)
 
+    if OUTPUT_STYLE == "compact":
+        return compact_body(reading, finished, read_books, listened_books)
+    if OUTPUT_STYLE != "classic":
+        raise ValueError("output_style must be classic or compact")
+
     if read_books:
         lines.append("Recently read:")
         for row in read_books[:5]:
@@ -161,6 +167,27 @@ def build_body() -> str:
     if stats_footer:
         lines.append("")
         lines.extend(stats_footer)
+    return "\n".join(lines)
+
+
+def compact_body(reading: list, finished: list, read_books: list, listened_books: list) -> str:
+    """Summarize the export without implying missing page/progress data is zero."""
+    lines = []
+    for index, row in enumerate(reading):
+        label = "📖 Reading" if index == 0 else "📚 Also reading"
+        lines.append(f"{label}: {book_line(row)}")
+    if read_books:
+        lines.append(f"🏁 Last read: {book_line(read_books[0])}")
+    if listened_books:
+        lines.append(f"🎧 Last listened: {book_line(listened_books[0])}")
+    year = current_year()
+    done = sum(1 for date, _ in finished if date.year == year)
+    goal = f"/{GOAL_BOOKS}" if GOAL_BOOKS else ""
+    lines.append(f"📅 {year}: {done}{goal} books")
+    lines.append(f"📊 Export: {len(finished)} finished books")
+    listening = audible_listening_line()
+    if listening:
+        lines.append(f"⏱️ {listening}")
     return "\n".join(lines)
 
 
@@ -205,8 +232,13 @@ def audible_listening_line():
                 monthly_listening_interval_start_date=f"{current_year()}-01",
                 store="Audible",
             )
-        months = stats.get("aggregated_monthly_listening_stats", [])
-        total_minutes = sum(int(m.get("aggregated_sum") or 0) for m in months) // 60000
+        months = stats["aggregated_monthly_listening_stats"]
+        if not isinstance(months, list):
+            raise TypeError("Missing or invalid Audible monthly stats")
+        values = [int(month["aggregated_sum"]) for month in months]
+        if any(value < 0 for value in values):
+            raise ValueError("Negative Audible listening duration")
+        total_minutes = sum(values) // 60000
         hours, minutes = divmod(total_minutes, 60)
         year = current_year()
         return f"listened {hours}h {minutes:02d}m in {year} on Audible"

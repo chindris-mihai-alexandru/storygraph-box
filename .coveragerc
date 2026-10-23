@@ -1,6 +1,6 @@
 [run]
 branch = True
-source = storygraph_box
+source = storygraph_box,sync_monitor
 
 [report]
 fail_under = 100

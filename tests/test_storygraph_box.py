@@ -11,21 +11,16 @@ import storygraph_box as box
 
 @pytest.fixture(autouse=True)
 def pinned_year(monkeypatch):
-    """The fixture dates are 2026, so pin the clock and keep January 1st harmless."""
+    """Reset every setting per test and restore the caller's environment afterwards."""
     monkeypatch.setattr(box, "current_year", lambda: 2026)
-    # setenv records the original state, so anything a test leaks is undone afterwards
-    for name in ("AUDIBLE_AUTH_FILE", "AUDIBLE_AUTH", "AUDIBLE_ADP_TOKEN", "AUDIBLE_DEVICE_PRIVATE_KEY", "INPUT_DRY_RUN"):
+    monkeypatch.setattr(box, "CSV_PATH", os.path.join(os.path.dirname(__file__), "sample_export.csv"))
+    monkeypatch.setattr(box, "WRAP_WIDTH", 50)
+    monkeypatch.setattr(box, "TITLE_MAX", 0)
+    monkeypatch.setattr(box, "OUTPUT_STYLE", "classic")
+    monkeypatch.setattr(box, "GOAL_BOOKS", "12")
+    monkeypatch.setattr(box, "AUDIBLE_AUTH_FILE", "")
+    for name in ("AUDIBLE_AUTH_FILE", "AUDIBLE_AUTH", "AUDIBLE_ADP_TOKEN", "AUDIBLE_DEVICE_PRIVATE_KEY", "INPUT_DRY_RUN", "INPUT_OUTPUT_STYLE"):
         monkeypatch.setenv(name, "")
-
-
-def setup_module(module):
-    box.CSV_PATH = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "sample_export.csv"
-    )
-    box.WRAP_WIDTH = 50
-    box.GOAL_BOOKS = "12"
-    box.AUDIBLE_AUTH_FILE = ""
-    os.environ.pop("AUDIBLE_AUTH_FILE", None)
 
 
 def test_header_and_sections_present():
@@ -511,7 +506,7 @@ def test_audible_request_parameters_and_zero_duration(monkeypatch):
         def get(self, path, **kwargs):
             seen.append((path, kwargs))
             return {"aggregated_monthly_listening_stats": [
-                {"aggregated_sum": None}, {}, {"aggregated_sum": "0"},
+                {"aggregated_sum": 0}, {"aggregated_sum": "0"},
             ]}
 
     monkeypatch.setattr(box, "audible_auth", lambda: object())
