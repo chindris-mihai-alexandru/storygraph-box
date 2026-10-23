@@ -30,9 +30,13 @@ jobs:
         run: docker build -t storygraph-box .
       - name: Smoke test the image the way GitHub runs a Docker action
         run: |
+          # A consumer's workspace holds their own repo, never this action's code,
+          # so mount a directory with nothing in it but the export.
+          mkdir -p "$RUNNER_TEMP/consumer"
+          cp tests/sample_export.csv "$RUNNER_TEMP/consumer/storygraph_export.csv"
           docker run --rm \
-            --workdir /github/workspace -v "$GITHUB_WORKSPACE":/github/workspace \
-            -e INPUT_CSV_PATH=tests/sample_export.csv -e INPUT_GOAL_BOOKS=12 \
+            --workdir /github/workspace -v "$RUNNER_TEMP/consumer":/github/workspace \
+            -e INPUT_CSV_PATH=storygraph_export.csv -e INPUT_GOAL_BOOKS=12 \
             -e INPUT_WRAP_WIDTH=50 -e INPUT_DRY_RUN=true \
             storygraph-box > out.txt 2> err.txt
           cat out.txt
