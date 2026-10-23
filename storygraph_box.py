@@ -179,7 +179,7 @@ def compact_body(reading: list, finished: list, read_books: list, listened_books
     if read_books:
         lines.append(f"🏁 Last read: {book_line(read_books[0])}")
     if listened_books:
-        lines.append(f"🎧 Listened: {book_line(listened_books[0])}")
+        lines.append(f"🎧 Audio: {book_line(listened_books[0])}")
     year = current_year()
     done = sum(1 for date, _ in finished if date.year == year)
     goal = f"/{GOAL_BOOKS}" if GOAL_BOOKS else ""

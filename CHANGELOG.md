@@ -4,6 +4,11 @@ All notable changes are listed here, newest first. The release workflow publishe
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-10-24
+
+### Fixed
+- Use `🎧 Audio` in compact output to leave room for the complete title and author in the verified pinned-card layout. Full book metadata is preserved.
+
 ## [1.2.1] - 2026-10-24
 
 ### Fixed

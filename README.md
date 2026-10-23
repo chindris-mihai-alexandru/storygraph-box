@@ -46,7 +46,7 @@ Set `output_style: compact` for an emoji summary. It lists every currently-readi
 ```text
 📖 Reading: The Name of the Wind by Patrick Rothfuss
 🏁 Last read: Project Hail Mary by Andy Weir
-🎧 Listened: Dune by Frank Herbert
+🎧 Audio: Dune by Frank Herbert
 📅 2026: 3/12 books
 📊 Export: 6 finished books
 ⏱️ listened 18h 05m in 2026 on Audible
