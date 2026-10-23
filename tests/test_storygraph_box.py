@@ -329,3 +329,46 @@ def test_non_ascii_titles_survive_the_round_trip(monkeypatch, tmp_path):
     monkeypatch.setattr(box, "CSV_PATH", str(export))
     monkeypatch.setattr(box, "GOAL_BOOKS", "")
     assert "Şocul întoarcerii în ţară by Neagu Djuvara" in box.build_body()
+
+
+def line_for(title, authors="Guy Kawasaki"):
+    return box.book_line({"title": title, "authors": authors})
+
+
+def test_subtitles_are_kept_by_default(monkeypatch):
+    monkeypatch.setattr(box, "WRAP_WIDTH", 0)
+    long_title = "Reality Check: The Irreverent Guide to Outsmarting, Outmanaging, and Outmarketing"
+    assert line_for(long_title) == f"{long_title} by Guy Kawasaki"
+
+
+def test_a_long_subtitle_is_dropped_when_the_short_form_fits(monkeypatch):
+    monkeypatch.setattr(box, "WRAP_WIDTH", 0)
+    monkeypatch.setattr(box, "TITLE_MAX", 52)
+    long_title = "Reality Check: The Irreverent Guide to Outsmarting, Outmanaging, and Outmarketing"
+    assert line_for(long_title) == "Reality Check by Guy Kawasaki"
+
+
+def test_a_line_that_already_fits_is_never_touched(monkeypatch):
+    monkeypatch.setattr(box, "WRAP_WIDTH", 0)
+    monkeypatch.setattr(box, "TITLE_MAX", 52)
+    assert line_for("Star Wars: Thrawn", "Timothy Zahn") == "Star Wars: Thrawn by Timothy Zahn"
+
+
+def test_the_full_title_stays_when_the_short_form_still_does_not_fit(monkeypatch):
+    monkeypatch.setattr(box, "WRAP_WIDTH", 0)
+    monkeypatch.setattr(box, "TITLE_MAX", 52)
+    title = "Jurnal de razboi 1916-1918 - Maria, Regina Romaniei. Lectura: Oana Pellea"
+    assert line_for(title, "Regina Maria") == f"{title} by Regina Maria"
+
+
+def test_shortening_handles_missing_authors_and_empty_leads(monkeypatch):
+    monkeypatch.setattr(box, "WRAP_WIDTH", 0)
+    monkeypatch.setattr(box, "TITLE_MAX", 20)
+    assert box.book_line({"title": "Short: " + "x" * 40}) == "Short"
+    assert box.book_line({"title": ": " + "x" * 40}) == ": " + "x" * 40
+
+
+def test_only_the_first_colon_splits_the_title(monkeypatch):
+    monkeypatch.setattr(box, "WRAP_WIDTH", 0)
+    monkeypatch.setattr(box, "TITLE_MAX", 40)
+    assert line_for("Life 3.0: Being Human: In the Age of Artificial Intelligence", "Max Tegmark") == "Life 3.0 by Max Tegmark"

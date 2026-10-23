@@ -22,6 +22,7 @@ from datetime import datetime
 from github import Auth, Github, InputFileContent
 
 WRAP_WIDTH = int(os.environ.get("INPUT_WRAP_WIDTH", "50"))
+TITLE_MAX = int(os.environ.get("INPUT_TITLE_MAX", "0") or 0)
 CSV_PATH = os.environ.get("INPUT_CSV_PATH", "storygraph_export.csv")
 GIST_ID = os.environ.get("INPUT_GIST_ID") or os.environ.get("GIST_ID", "")
 GH_TOKEN = os.environ.get("GH_TOKEN", "")
@@ -57,12 +58,29 @@ def load_rows() -> list[dict]:
         return list(reader)
 
 
+def shorten(line: str, title: str, authors: str) -> str:
+    """Drop a subtitle only when the line is too long and the short form fits.
+
+    StoryGraph titles carry their subtitle, the pinned card clips a line near
+    55 characters. If cutting after the first ": " still does not fit, the full
+    title is kept, a clipped title beats a dangling fragment.
+    """
+    if TITLE_MAX <= 0 or len(line) <= TITLE_MAX or ": " not in title:
+        return line
+    short = title.split(": ", 1)[0].strip()
+    if not short:
+        return line
+    candidate = f"{short} by {authors}" if authors else short
+    return candidate if len(candidate) <= TITLE_MAX else line
+
+
 def book_line(row: dict) -> str:
     title = html.unescape(pick(row, "title")) or "Unknown title"
     if title.lower().startswith("audiobook "):
         title = title[len("audiobook "):]
     authors = html.unescape(pick(row, "authors", "author"))
     line = f"{title} by {authors}" if authors else title
+    line = shorten(line, title, authors)
     if WRAP_WIDTH <= 0:
         return line
     return "\n".join(textwrap.wrap(line, WRAP_WIDTH) or [line])

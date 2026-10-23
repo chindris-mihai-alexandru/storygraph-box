@@ -86,7 +86,8 @@ Refresh the CSV export whenever you want fresh data, commit or upload the new fi
 |---|---|---|---|
 | `gist_id` | yes | | ID from your gist URL |
 | `csv_path` | no | `storygraph_export.csv` | Path to the committed export |
-| `wrap_width` | no | `50` | Book line wrap width, ashtom-style |
+| `wrap_width` | no | `50` | Book line wrap width, ashtom-style, `0` keeps one line per book |
+| `title_max` | no | `0` | Drop a subtitle when a line is longer than this and the short form fits, so the pinned card does not clip it. About `52` suits the card, `0` keeps full titles |
 | `goal_books` | no | hidden | Yearly goal, renders `YYYY: done/N books` |
 | `audible_locale` | no | `uk` | Your Audible marketplace code |
 | `dry_run` | no | `false` | Print the rendered gist to the log and leave the gist alone, handy for previewing |

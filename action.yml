@@ -15,6 +15,10 @@ inputs:
     description: 'Wrap book lines at this width, matching ashtom-style gists. Set to 0 for one line per book'
     required: false
     default: '50'
+  title_max:
+    description: 'Drop a title subtitle when a line is longer than this many characters and the short form fits. 0 keeps full titles. About 52 suits the pinned card'
+    required: false
+    default: '0'
   goal_books:
     description: 'Yearly reading goal in books, shown as YYYY: done/N. Leave empty to hide'
     required: false

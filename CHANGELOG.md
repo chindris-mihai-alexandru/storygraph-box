@@ -4,6 +4,11 @@ All notable changes are listed here, newest first. The release workflow publishe
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-24
+
+### Added
+- `title_max` input. When a line is longer than the limit and cutting after the first `: ` makes it fit, the subtitle is dropped. A line that already fits, or one that would still be too long, keeps its full title. The pinned card clips near 55 characters, so about 52 keeps every visible line whole. It is off by default.
+
 ## [1.0.4] - 2026-10-24
 
 ### Added
