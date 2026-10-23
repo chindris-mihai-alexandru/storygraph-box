@@ -25,11 +25,25 @@ def test_header_and_sections_present():
     assert "Recently listened:" in body
 
 
-def test_currently_reading_shows_progress():
+def test_currently_reading_lists_the_book_without_a_bogus_progress_bar():
+    """Real exports carry no progress column, so no bar and no 0% may appear."""
     body = box.build_body()
     reading = body.split("Currently reading:")[1].split("\n\n")[0]
-    assert "The Name of the Wind by Patrick Rothfuss" in reading
-    assert reading.rstrip().endswith("42%")
+    assert reading.strip() == "The Name of the Wind by Patrick Rothfuss"
+    assert "%" not in body
+    assert "\u2591" not in body
+
+
+def test_fixture_mirrors_the_real_export_header():
+    import csv
+
+    with open(box.CSV_PATH, newline="", encoding="utf-8-sig") as fh:
+        reader = csv.DictReader(fh)
+        rows = list(reader)
+    assert len(reader.fieldnames) == 23
+    assert {"Moods", "Pace", "Star Rating", "Review", "Tags"} <= set(reader.fieldnames)
+    for row in rows:
+        assert None not in row and None not in row.values(), row
 
 
 def test_audio_format_goes_to_listened():
@@ -61,8 +75,6 @@ def test_no_audible_line_without_auth():
 def test_wrapped_lines_respect_width():
     body = box.build_body()
     for line in body.split("\n"):
-        if line.rstrip().endswith("42%"):
-            continue  # the progress bar line is allowed to run wide
         assert len(line.rstrip()) <= 50 + 2, line
 
 
@@ -78,6 +90,44 @@ def test_unknown_format_defaults_to_read():
         fmt = box.pick(row, "format").lower()
         (listened_books if "audio" in fmt else read_books).append(row)
     assert len(read_books) == 1 and not listened_books
+
+def test_did_not_finish_is_left_out_everywhere():
+    body = box.build_body()
+    assert "Infinite Jest" not in body
+
+
+def test_to_read_pile_is_left_out():
+    assert "Piranesi" not in box.build_body()
+
+
+def test_html_entities_are_unescaped():
+    body = box.build_body()
+    assert "Pride & Prejudice by Jane Austen" in body
+    assert "&amp;" not in body
+
+
+def test_undated_finished_book_sorts_last_without_crashing():
+    read = box.build_body().split("Recently read:")[1].split("Recently listened:")[0]
+    lines = [line for line in read.split("\n") if line]
+    assert lines[-1] == "The Hobbit by J.R.R. Tolkien"
+
+
+def test_status_spellings_are_folded_together():
+    for spelling in ("currently-reading", "currently_reading", "Currently reading", " CURRENTLY  READING "):
+        assert box.normalize_status(spelling) == "currently reading"
+    assert box.normalize_status("did-not-finish") == "did not finish"
+
+
+def test_readme_sample_matches_the_real_output():
+    """The documented sample is generated from the fixture, so it cannot drift."""
+    readme = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "README.md")
+    with open(readme, encoding="utf-8") as fh:
+        text = fh.read()
+    block = text.split("## Sample output")[1].split("```")[1].strip("\n")
+    documented = [line for line in block.split("\n") if "on Audible" not in line]
+    rendered = box.build_body().rstrip("\n").split("\n")
+    assert documented == rendered
+
 
 def test_two_field_auth_builds_without_network(monkeypatch):
     monkeypatch.delenv("AUDIBLE_AUTH_FILE", raising=False)

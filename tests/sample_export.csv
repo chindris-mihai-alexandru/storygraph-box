@@ -1,6 +1,10 @@
-Title,Authors,Format,Read Status,Last Date Read,Progress
-The Name of the Wind,Patrick Rothfuss,hardcover,Currently reading,,42
-The Remains of the Day,Kazuo Ishiguro,paperback,read,2026/02/10,
-Project Hail Mary,Andy Weir,digital,read,2026/03/05,
-Dune,Frank Herbert,audio,read,2026/04/01,
-The Way of Kings,Brandon Sanderson,audio,read,2025/12/15,
+Title,Authors,Contributors,ISBN/UID,Format,Read Status,Date Added,Last Date Read,Dates Read,Read Count,Moods,Pace,Character- or Plot-Driven?,Strong Character Development?,Loveable Characters?,Diverse Characters?,Flawed Characters?,Star Rating,Review,Content Warnings,Content Warning Description,Tags,Owned?
+The Name of the Wind,Patrick Rothfuss,,9780756404741,hardcover,currently-reading,2026/09/01,,,0,,,,,,,,,,,,,No
+The Remains of the Day,Kazuo Ishiguro,,9780679731726,paperback,read,2026/01/05,2026/02/10,2026/02/01-2026/02/10,1,"reflective, sad",slow,,,,,,4.5,"Quietly devastating.",,,,Yes
+Project Hail Mary,Andy Weir,,9780593135204,digital,read,2026/02/20,2026/03/05,2026/03/01-2026/03/05,1,"adventurous, funny",fast,,,,,,5.0,"Pure fun.",,,,No
+Dune,Frank Herbert,,9780441013593,audio,read,2026/03/10,2026/04/01,2026/03/10-2026/04/01,1,"challenging, mysterious",slow,,,,,,4.0,"",,,,No
+The Way of Kings,Brandon Sanderson,,9780765326355,audio,read,2025/11/01,2025/12/15,2025/11/01-2025/12/15,1,"adventurous, hopeful",medium,,,,,,4.5,"",,,,No
+Pride &amp; Prejudice,Jane Austen,,9780141439518,paperback,read,2025/10/01,2025/11/01,2025/10/20-2025/11/01,1,"lighthearted",medium,,,,,,4.0,"",,,,Yes
+The Hobbit,J.R.R. Tolkien,,9780547928227,paperback,read,2024/05/01,,,1,"adventurous",medium,,,,,,4.5,"",,,,Yes
+Infinite Jest,David Foster Wallace,,9780316066525,paperback,did-not-finish,2026/05/01,2026/05/20,2026/05/01-2026/05/20,0,,,,,,,,,,,,,No
+Piranesi,Susanna Clarke,,9781635575637,hardcover,to-read,2026/06/01,,,0,,,,,,,,,,,,,No

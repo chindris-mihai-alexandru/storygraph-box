@@ -22,11 +22,12 @@ latest reads
 
 Currently reading:
 The Name of the Wind by Patrick Rothfuss
-████████▍░░░░░░░░░░░ 42%
 
 Recently read:
-The Remains of the Day by Kazuo Ishiguro
 Project Hail Mary by Andy Weir
+The Remains of the Day by Kazuo Ishiguro
+Pride & Prejudice by Jane Austen
+The Hobbit by J.R.R. Tolkien
 
 Recently listened:
 Dune by Frank Herbert
@@ -36,7 +37,7 @@ read 3 of 12 books in 2026
 listened 18h 05m in 2026 on Audible
 ```
 
-Currently reading shows a live progress bar, finished books are split into read and listened by their StoryGraph format, and the footer carries your yearly reading goal and Audible listening time.
+Books you are reading right now get their own section, finished books are split into read and listened by their StoryGraph format, and the footer carries your yearly reading goal and Audible listening time. To-read and did-not-finish books are left out on purpose.
 
 ## Setup
 
@@ -100,7 +101,7 @@ Audible authentication takes either route. The full auth file is the simplest, w
 ## Notes and honest limitations
 
 - StoryGraph has no official API. This tool uses the official CSV export, which means one manual download per refresh. If StoryGraph ever ships an API, this becomes a ten-line change. Show your support on the official roadmap post, [An API](https://roadmap.thestorygraph.com/features/posts/an-api), open since 2021.
-- The CSV export drops moods, pace and reading-journal stats. Blame the export, not the tool.
+- The export carries moods, pace, ratings, reviews, tags and read dates for every book, but no reading progress, journal entries or aggregate stats. That is why there is no progress bar here, a currently-reading book shows as a title only.
 - Audible stats come from Audible's internal API through the `audible` package. It works today, it is unofficial, and a one-time external login is all it takes.
 
 ## Credits

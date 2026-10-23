@@ -12,7 +12,9 @@ from action.yml inputs (INPUT_*) and secrets.
 
 import base64
 import csv
+import html
 import os
+import re
 import sys
 import textwrap
 from datetime import datetime
@@ -37,17 +39,6 @@ def pick(row: dict, *names: str) -> str:
     return ""
 
 
-def bar(percent: int, size: int = 20) -> str:
-    syms = "░▏▎▍▌▋▊▉█"
-    percent = max(0, min(100, percent))
-    frac = (size * 8 * percent) // 100
-    full = frac // 8
-    if full >= size:
-        return syms[8] * size
-    semi = syms[frac % 8] if percent > 0 else ""
-    return (syms[8] * full + semi).ljust(size, syms[0])
-
-
 def load_rows() -> list[dict]:
     if CSV_PATH and os.path.exists(CSV_PATH):
         with open(CSV_PATH, newline="", encoding="utf-8-sig") as fh:
@@ -56,14 +47,19 @@ def load_rows() -> list[dict]:
 
 
 def book_line(row: dict) -> str:
-    title = pick(row, "title") or "Unknown title"
+    title = html.unescape(pick(row, "title")) or "Unknown title"
     if title.lower().startswith("audiobook "):
         title = title[len("audiobook "):]
-    authors = pick(row, "authors", "author")
+    authors = html.unescape(pick(row, "authors", "author"))
     line = f"{title} by {authors}" if authors else title
     if WRAP_WIDTH <= 0:
         return line
     return "\n".join(textwrap.wrap(line, WRAP_WIDTH) or [line])
+
+
+def normalize_status(value: str) -> str:
+    """Fold "currently-reading", "currently_reading" and "Currently reading" together."""
+    return re.sub(r"[-_\s]+", " ", value.strip().lower())
 
 
 def parse_date(value: str):
@@ -85,22 +81,19 @@ def build_body() -> str:
 
     finished, reading = [], []
     for row in rows:
-        status = pick(row, "read status", "status").lower()
-        if "currently" in status:
+        status = normalize_status(pick(row, "read status", "status"))
+        if status == "currently reading":
             reading.append(row)
-        elif status in ("read", "finished", "did not finish"):
+        elif status in ("read", "finished"):
             date_value = pick(row, "date finished", "last date read", "date read")
             date = parse_date(date_value) if date_value else None
             finished.append((date or datetime.min, row))
+        # to-read and did-not-finish rows are deliberately left out
 
     if reading:
         lines.append("Currently reading:")
         for row in reading:
-            progress = pick(row, "progress", "progress %", "percent complete")
-            digits = "".join(ch for ch in progress if ch.isdigit())
-            pct = int(digits[:2] or 0) if digits else 0
             lines.append(book_line(row))
-            lines.append(f"{bar(pct)} {pct}%")
         lines.append("")
 
     finished.sort(key=lambda pair: pair[0], reverse=True)
