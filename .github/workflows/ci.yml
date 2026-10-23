@@ -20,8 +20,10 @@ jobs:
         run: pip install -r requirements-dev.txt
       - name: Lint
         run: ruff check storygraph_box.py tests
-      - name: Test
-        run: pytest -q
+      - name: Test with line and branch coverage
+        run: |
+          coverage run -m pytest -q
+          coverage report
 
   docker:
     runs-on: ubuntu-latest

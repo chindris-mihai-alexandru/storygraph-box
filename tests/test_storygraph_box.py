@@ -94,13 +94,14 @@ def test_audiobook_prefix_is_stripped():
     assert box.book_line(rows[0]) == "Dune by Frank Herbert"
 
 
-def test_unknown_format_defaults_to_read():
-    rows = [{"title": "Some Book", "authors": "Someone", "format": "", "read status": "read", "last date read": "2026/01/01"}]
-    read_books, listened_books = [], []
-    for row in rows:
-        fmt = box.pick(row, "format").lower()
-        (listened_books if "audio" in fmt else read_books).append(row)
-    assert len(read_books) == 1 and not listened_books
+def test_unknown_format_defaults_to_read(monkeypatch):
+    monkeypatch.setattr(box, "load_rows", lambda: [{
+        "title": "Some Book", "authors": "Someone", "format": "",
+        "read status": "read", "last date read": "2026/01/01",
+    }])
+    body = box.build_body()
+    assert "Recently read:\nSome Book by Someone" in body
+    assert "Recently listened:" not in body
 
 def test_did_not_finish_is_left_out_everywhere():
     body = box.build_body()
@@ -372,3 +373,248 @@ def test_only_the_first_colon_splits_the_title(monkeypatch):
     monkeypatch.setattr(box, "WRAP_WIDTH", 0)
     monkeypatch.setattr(box, "TITLE_MAX", 40)
     assert line_for("Life 3.0: Being Human: In the Age of Artificial Intelligence", "Max Tegmark") == "Life 3.0 by Max Tegmark"
+
+
+@pytest.mark.parametrize("content", [
+    "",
+    "Title,Read Status, title\nA,read,A\n",
+    "Title,Read Status,\nA,read,x\n",
+    "Title,Authors,Read Status\nA,B\n",
+    "Title,Read Status\nA,read,extra\n",
+    'Title,Read Status\n"unfinished,read\n',
+])
+def test_broken_export_never_updates_the_gist(content, monkeypatch, tmp_path, capsys):
+    export = tmp_path / "broken.csv"
+    export.write_text(content)
+    calls = []
+    monkeypatch.setattr(box, "CSV_PATH", str(export))
+    monkeypatch.setattr(box, "update_gist", calls.append)
+    assert box.main() == 1
+    assert not calls
+    assert capsys.readouterr().err.startswith("storygraph-box,")
+
+
+def test_invalid_utf8_export_is_rejected(monkeypatch, tmp_path, capsys):
+    export = tmp_path / "broken.csv"
+    export.write_bytes(b"Title,Read Status\n\xff,read\n")
+    monkeypatch.setattr(box, "CSV_PATH", str(export))
+    assert box.main() == 1
+    assert "decode" in capsys.readouterr().err
+
+
+def test_quoted_multiline_review_is_valid(monkeypatch, tmp_path):
+    export = tmp_path / "valid.csv"
+    export.write_text('Title,Read Status,Review\nDune,read,"two\nlines, and a comma"\n')
+    monkeypatch.setattr(box, "CSV_PATH", str(export))
+    assert box.load_rows()[0]["Review"] == "two\nlines, and a comma"
+
+
+def test_bom_export_has_normalized_columns(monkeypatch):
+    monkeypatch.setattr(box, "CSV_PATH", os.path.join(
+        os.path.dirname(__file__), "bom_export.csv"
+    ))
+    assert box.pick(box.load_rows()[0], "title")
+    assert box.build_body().startswith("latest reads\n\n")
+
+
+@pytest.mark.parametrize(("value", "expected"), [
+    ("2026/10/23", (2026, 10, 23)),
+    ("2026-10-23", (2026, 10, 23)),
+    ("23/10/2026", (2026, 10, 23)),
+    ("10/23/2026", (2026, 10, 23)),
+    ("23 Oct 2026", (2026, 10, 23)),
+    ("23/10/26", (2026, 10, 23)),
+    ("2026/02/30", None),
+    ("not a date", None),
+    ("", None),
+])
+def test_date_formats_and_invalid_dates(value, expected):
+    result = box.parse_date(value)
+    assert ((result.year, result.month, result.day) if result else None) == expected
+
+
+def test_real_clock_is_used_in_production(monkeypatch):
+    monkeypatch.undo()
+    assert box.current_year() == box.datetime.now().year
+
+
+def test_reading_status_variants_use_the_real_renderer(monkeypatch):
+    for status in ("currently reading", "currently-reading", "currently_reading"):
+        monkeypatch.setattr(box, "load_rows", lambda status=status: [{
+            "Title": "A book", "Read Status": status,
+        }])
+        assert "Currently reading:\nA book" in box.build_body()
+
+
+def test_audio_only_has_one_blank_line_after_header(monkeypatch):
+    monkeypatch.setattr(box, "load_rows", lambda: [{
+        "Title": "Dune", "Read Status": "read", "Format": "audio",
+    }])
+    monkeypatch.setattr(box, "GOAL_BOOKS", "")
+    assert box.build_body() == "latest reads\n\nRecently listened:\nDune"
+
+
+def test_reading_and_audio_sections_have_one_blank_line(monkeypatch):
+    monkeypatch.setattr(box, "load_rows", lambda: [
+        {"Title": "Reading", "Read Status": "currently reading"},
+        {"Title": "Dune", "Read Status": "read", "Format": "audio"},
+    ])
+    monkeypatch.setattr(box, "GOAL_BOOKS", "")
+    assert box.build_body() == (
+        "latest reads\n\nCurrently reading:\nReading\n\nRecently listened:\nDune"
+    )
+
+
+def test_embedded_metadata_whitespace_cannot_inject_sections(monkeypatch):
+    monkeypatch.setattr(box, "WRAP_WIDTH", 0)
+    assert box.book_line({
+        "title": "A&#10;Title\t with spaces", "authors": "One\n Author",
+    }) == "A Title with spaces by One Author"
+    assert box.book_line({"title": "", "authors": ""}) == "Unknown title"
+
+
+def test_list_limits_and_order_are_applied_in_renderer(monkeypatch):
+    rows = [{
+        "Title": f"Print{i}", "Read Status": "read", "Last Date Read": f"2026/01/{i:02}",
+    } for i in range(1, 8)]
+    rows += [{
+        "Title": f"Audio{i}", "Read Status": "read", "Format": "audio",
+        "Last Date Read": f"2026/01/{i:02}",
+    } for i in range(1, 6)]
+    monkeypatch.setattr(box, "load_rows", lambda: rows)
+    body = box.build_body()
+    assert body.index("Print7") < body.index("Print3")
+    assert "Print2" not in body and "Audio2" not in body
+    assert "read 12 of 12 books in 2026" in body
+
+
+def test_auth_restore_disk_error_is_optional(monkeypatch, tmp_path, capsys):
+    import base64
+
+    monkeypatch.setenv("AUDIBLE_AUTH", base64.b64encode(b"{}").decode())
+    box.restore_audible_auth(str(tmp_path / "absent" / "auth.json"))
+    assert "could not restore optional Audible auth file" in capsys.readouterr().err
+    assert not os.environ["AUDIBLE_AUTH_FILE"]
+
+
+def test_partial_two_field_auth_does_not_build_an_authenticator(monkeypatch):
+    monkeypatch.setenv("AUDIBLE_ADP_TOKEN", "one field only")
+    assert box.audible_auth() is None
+
+
+def test_audible_request_parameters_and_zero_duration(monkeypatch):
+    import audible
+
+    seen = []
+
+    class RecordingClient(FakeClient):
+        def get(self, path, **kwargs):
+            seen.append((path, kwargs))
+            return {"aggregated_monthly_listening_stats": [
+                {"aggregated_sum": None}, {}, {"aggregated_sum": "0"},
+            ]}
+
+    monkeypatch.setattr(box, "audible_auth", lambda: object())
+    monkeypatch.setattr(audible, "Client", RecordingClient)
+    assert box.audible_listening_line() == "listened 0h 00m in 2026 on Audible"
+    assert seen == [("1.0/stats/aggregates", {
+        "monthly_listening_interval_duration": "12",
+        "monthly_listening_interval_start_date": "2026-01",
+        "store": "Audible",
+    })]
+
+
+def test_gist_update_validates_credentials(monkeypatch):
+    monkeypatch.setattr(box, "GH_TOKEN", "")
+    monkeypatch.setattr(box, "GIST_ID", "")
+    with pytest.raises(ValueError, match="required"):
+        box.update_gist("body")
+
+
+@pytest.fixture
+def fake_github(monkeypatch):
+    from types import SimpleNamespace
+
+    state = SimpleNamespace(
+        files={"latest reads": SimpleNamespace(content="before")},
+        writes=[], reads=0, closed=False, mismatch=False,
+    )
+
+    class Gist:
+        @property
+        def files(self):
+            return state.files
+
+        def edit(self, *, files):
+            state.writes.append(files)
+            if not state.mismatch:
+                state.files = {name: SimpleNamespace(content=value.content)
+                               for name, value in files.items()}
+
+    class Client:
+        def __init__(self, *, auth):
+            assert auth.token == "fake-token"
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            state.closed = True
+
+        def get_gist(self, gist_id):
+            assert gist_id == "test-gist"
+            state.reads += 1
+            return Gist()
+
+    monkeypatch.setattr(box, "GH_TOKEN", "fake-token")
+    monkeypatch.setattr(box, "GIST_ID", "test-gist")
+    monkeypatch.setattr(box, "Github", Client)
+    monkeypatch.setattr(box, "InputFileContent", lambda content: SimpleNamespace(content=content))
+    return state
+
+
+def test_gist_write_is_verified_and_client_closed(fake_github):
+    box.update_gist("expected body")
+    assert fake_github.reads == 2
+    assert len(fake_github.writes) == 1
+    assert fake_github.files["latest reads"].content == "expected body"
+    assert fake_github.closed
+
+
+def test_unchanged_gist_is_not_rewritten(fake_github):
+    box.update_gist("before")
+    assert not fake_github.writes
+    assert fake_github.reads == 1 and fake_github.closed
+
+
+def test_wrong_gist_readback_fails_without_retrying_write(fake_github):
+    fake_github.mismatch = True
+    with pytest.raises(RuntimeError, match="readback"):
+        box.update_gist("expected body")
+    assert len(fake_github.writes) == 1 and fake_github.closed
+
+
+@pytest.mark.parametrize("filenames", [[], ["one", "two"]])
+def test_ambiguous_gist_is_not_modified(fake_github, filenames):
+    fake_github.files = dict.fromkeys(filenames)
+    with pytest.raises(ValueError, match="exactly one file"):
+        box.update_gist("expected body")
+    assert not fake_github.writes and fake_github.closed
+
+
+def test_optional_listening_footer_is_included(monkeypatch):
+    monkeypatch.setattr(box, "audible_listening_line", lambda: "listened 1h 02m in 2026 on Audible")
+    assert box.build_body().endswith(
+        "read 3 of 12 books in 2026\nlistened 1h 02m in 2026 on Audible"
+    )
+
+
+def test_command_line_entry_point(monkeypatch, capsys):
+    import runpy
+
+    monkeypatch.setenv("INPUT_CSV_PATH", box.CSV_PATH)
+    monkeypatch.setenv("INPUT_DRY_RUN", "true")
+    with pytest.raises(SystemExit) as result:
+        runpy.run_path(box.__file__, run_name="__main__")
+    assert result.value.code == 0
+    assert capsys.readouterr().out.startswith("latest reads\n\n")

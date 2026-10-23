@@ -48,14 +48,21 @@ def load_rows() -> list[dict]:
     if not os.path.exists(CSV_PATH):
         raise FileNotFoundError(f"StoryGraph export not found at {CSV_PATH!r}, check csv_path")
     with open(CSV_PATH, newline="", encoding="utf-8-sig") as fh:
-        reader = csv.DictReader(fh)
-        columns = {name.strip().lower() for name in (reader.fieldnames or []) if name}
-        if not all(column in columns for column in REQUIRED_COLUMNS):
+        reader = csv.DictReader(fh, strict=True)
+        headers = [name.strip().lower() for name in (reader.fieldnames or [])]
+        if not all(column in headers for column in REQUIRED_COLUMNS):
             raise ValueError(
                 f"{CSV_PATH!r} does not look like a StoryGraph export, "
                 f"expected the columns {', '.join(REQUIRED_COLUMNS)}"
             )
-        return list(reader)
+        if "" in headers or len(headers) != len(set(headers)):
+            raise ValueError("StoryGraph export has empty or duplicate column names")
+        rows = []
+        for row in reader:
+            if None in row or any(value is None for value in row.values()):
+                raise ValueError(f"StoryGraph export has an incomplete row at line {reader.line_num}")
+            rows.append(row)
+        return rows
 
 
 def shorten(line: str, title: str, authors: str) -> str:
@@ -75,10 +82,10 @@ def shorten(line: str, title: str, authors: str) -> str:
 
 
 def book_line(row: dict) -> str:
-    title = html.unescape(pick(row, "title")) or "Unknown title"
+    title = " ".join(html.unescape(pick(row, "title")).split()) or "Unknown title"
     if title.lower().startswith("audiobook "):
         title = title[len("audiobook "):]
-    authors = html.unescape(pick(row, "authors", "author"))
+    authors = " ".join(html.unescape(pick(row, "authors", "author")).split())
     line = f"{title} by {authors}" if authors else title
     line = shorten(line, title, authors)
     if WRAP_WIDTH <= 0:
@@ -137,7 +144,8 @@ def build_body() -> str:
         for row in read_books[:5]:
             lines.append(book_line(row))
     if listened_books:
-        lines.append("")
+        if lines[-1]:
+            lines.append("")
         lines.append("Recently listened:")
         for row in listened_books[:3]:
             lines.append(book_line(row))
@@ -208,10 +216,18 @@ def audible_listening_line():
 
 
 def update_gist(body: str) -> None:
-    gh = Github(auth=Auth.Token(GH_TOKEN))
-    gist = gh.get_gist(GIST_ID)
-    filename = next(iter(gist.files))
-    gist.edit(files={filename: InputFileContent(body)})
+    if not GH_TOKEN or not GIST_ID:
+        raise ValueError("GH_TOKEN and gist_id are required for a real update")
+    with Github(auth=Auth.Token(GH_TOKEN)) as gh:
+        gist = gh.get_gist(GIST_ID)
+        if len(gist.files) != 1:
+            raise ValueError("The target gist must contain exactly one file")
+        filename = next(iter(gist.files))
+        if gist.files[filename].content == body:
+            return
+        gist.edit(files={filename: InputFileContent(body)})
+        if gh.get_gist(GIST_ID).files[filename].content != body:
+            raise RuntimeError("Gist readback did not match the rendered body")
 
 
 def restore_audible_auth(dest: str = "/tmp/audible_auth.json") -> None:
@@ -228,16 +244,19 @@ def restore_audible_auth(dest: str = "/tmp/audible_auth.json") -> None:
     except ValueError as error:
         print(f"storygraph-box, AUDIBLE_AUTH is not valid base64, {error}", file=sys.stderr)
         return
-    with open(dest, "wb") as fh:
-        fh.write(data)
-    os.environ["AUDIBLE_AUTH_FILE"] = dest
+    try:
+        with open(dest, "wb") as fh:
+            fh.write(data)
+        os.environ["AUDIBLE_AUTH_FILE"] = dest
+    except OSError:
+        print("storygraph-box, could not restore optional Audible auth file", file=sys.stderr)
 
 
 def main() -> int:
     restore_audible_auth()
     try:
         body = build_body()
-    except (FileNotFoundError, ValueError) as error:
+    except (OSError, ValueError, csv.Error) as error:
         print(f"storygraph-box, {error}", file=sys.stderr)
         return 1
     if os.environ.get("INPUT_DRY_RUN", "").strip().lower() == "true":

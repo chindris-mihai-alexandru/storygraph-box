@@ -4,6 +4,18 @@ All notable changes are listed here, newest first. The release workflow publishe
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-10-24
+
+### Fixed
+- Reject malformed CSV rows, duplicate or empty headers and invalid UTF-8 before updating a gist. Quoted multiline reviews remain supported.
+- Normalize embedded whitespace in titles and authors and keep a single blank line before an audio-only section.
+- Verify gist content after a write, skip unchanged content and reject ambiguous multi-file targets.
+- Treat optional Audible auth-file write failures as warnings.
+
+### Tests
+- CI and releases require 100% line and branch coverage of `storygraph_box.py`. The 75-test suite includes the command-line entry point, malformed input and gist API boundaries.
+- Six representative regressions were injected in memory and caught by the tests, without changing the working copy.
+
 ## [1.1.0] - 2026-10-24
 
 ### Added

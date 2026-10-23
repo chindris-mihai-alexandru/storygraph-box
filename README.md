@@ -88,9 +88,11 @@ Refresh the CSV export whenever you want fresh data, commit or upload the new fi
 | `csv_path` | no | `storygraph_export.csv` | Path to the committed export |
 | `wrap_width` | no | `50` | Book line wrap width, ashtom-style, `0` keeps one line per book |
 | `title_max` | no | `0` | Drop a subtitle when a line is longer than this and the short form fits, so the pinned card does not clip it. About `52` suits the card, `0` keeps full titles |
-| `goal_books` | no | hidden | Yearly goal, renders `YYYY: done/N books` |
+| `goal_books` | no | hidden | Yearly goal, renders `read done of N books in YYYY` |
 | `audible_locale` | no | `uk` | Your Audible marketplace code |
 | `dry_run` | no | `false` | Print the rendered gist to the log and leave the gist alone, handy for previewing |
+
+Malformed CSV rows, duplicate or empty headers and invalid UTF-8 stop the run before any gist write. The target must be a single-file gist. Unchanged content is not rewritten, and changed content is read back from GitHub before success is reported.
 
 ## Secrets
 
@@ -120,7 +122,7 @@ The signed address expires within minutes and contains your signature, so do not
 
 ## Notes and honest limitations
 
-- StoryGraph has no official API. This tool uses the official CSV export, which means one manual download per refresh. If StoryGraph ever ships an API, this becomes a ten-line change. Show your support on the official roadmap post, [An API](https://roadmap.thestorygraph.com/features/posts/an-api), open since 2021.
+- StoryGraph has no official API. This tool uses the official CSV export, which means one manual download per refresh. An official API would need an adapter and compatibility tests before it could replace the export. Show your support on the official roadmap post, [An API](https://roadmap.thestorygraph.com/features/posts/an-api), open since 2021.
 - Two other roadmap posts would close the remaining gaps if they ship. [Export your stats into CSV/Excel](https://roadmap.thestorygraph.com/requests-ideas/posts/export-your-stats-into-csv-excel) asks for reading journal data, which is what a progress bar would need, and the bug [Export mangles non-ASCII characters](https://roadmap.thestorygraph.com/bugs/posts/export-mangles-non-ascii-characters) can garble accented titles in the file.
 - The export carries moods, pace, ratings, reviews, tags and read dates for every book, but no reading progress, journal entries or aggregate stats. That is why there is no progress bar here, a currently-reading book shows as a title only.
 - Audible stats come from Audible's internal API through the `audible` package. It works today, it is unofficial, and a one-time external login is all it takes.
