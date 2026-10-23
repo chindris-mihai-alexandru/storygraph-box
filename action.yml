@@ -23,6 +23,10 @@ inputs:
     description: 'Audible marketplace locale code, e.g. uk, de, com'
     required: false
     default: 'uk'
+  dry_run:
+    description: 'Print the rendered gist body to the log instead of updating the gist. Useful to preview a layout'
+    required: false
+    default: 'false'
 runs:
   using: 'docker'
   image: 'Dockerfile'

@@ -19,3 +19,23 @@ jobs:
         run: ruff check storygraph_box.py tests
       - name: Test
         run: pytest -q
+
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the image
+        run: docker build -t storygraph-box .
+      - name: Smoke test the image the way GitHub runs a Docker action
+        run: |
+          docker run --rm \
+            --workdir /github/workspace -v "$GITHUB_WORKSPACE":/github/workspace \
+            -e INPUT_CSV_PATH=tests/sample_export.csv -e INPUT_GOAL_BOOKS=12 \
+            -e INPUT_WRAP_WIDTH=50 -e INPUT_DRY_RUN=true \
+            storygraph-box > out.txt 2> err.txt
+          cat out.txt
+          grep -qx "latest reads" out.txt
+          grep -q "Project Hail Mary by Andy Weir" out.txt
+          grep -Eq "^read [0-9]+ of 12 books in [0-9]{4}$" out.txt
+          if grep -q Traceback err.txt; then cat err.txt; exit 1; fi

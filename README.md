@@ -64,7 +64,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - uses: YOUR_USERNAME/storygraph-box@main
+      - uses: YOUR_USERNAME/storygraph-box@v1
         with:
           gist_id: YOUR_GIST_ID
           goal_books: '5'
@@ -72,6 +72,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           AUDIBLE_AUTH: ${{ secrets.AUDIBLE_AUTH }}
 ```
+
+Pin to `@v1` to receive fixes without surprises. `@main` follows unreleased commits.
 
 2. Add the secrets `GH_TOKEN` and, if using Audible, `AUDIBLE_AUTH` (the base64-encoded auth file) in repo Settings, Secrets and variables, Actions.
 3. Run the workflow once, then pin the gist on your profile.
@@ -87,6 +89,7 @@ Refresh the CSV export whenever you want fresh data, commit or upload the new fi
 | `wrap_width` | no | `50` | Book line wrap width, ashtom-style |
 | `goal_books` | no | hidden | Yearly goal, renders `YYYY: done/N books` |
 | `audible_locale` | no | `uk` | Your Audible marketplace code |
+| `dry_run` | no | `false` | Print the rendered gist to the log and leave the gist alone, handy for previewing |
 
 ## Secrets
 

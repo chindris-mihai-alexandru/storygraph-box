@@ -2,9 +2,20 @@ import os
 import sys
 from typing import ClassVar
 
+import pytest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import storygraph_box as box
+
+
+@pytest.fixture(autouse=True)
+def pinned_year(monkeypatch):
+    """The fixture dates are 2026, so pin the clock and keep January 1st harmless."""
+    monkeypatch.setattr(box, "current_year", lambda: 2026)
+    # setenv records the original state, so anything a test leaks is undone afterwards
+    for name in ("AUDIBLE_AUTH_FILE", "AUDIBLE_AUTH", "AUDIBLE_ADP_TOKEN", "AUDIBLE_DEVICE_PRIVATE_KEY", "INPUT_DRY_RUN"):
+        monkeypatch.setenv(name, "")
 
 
 def setup_module(module):
@@ -186,7 +197,7 @@ def test_audible_line_converts_milliseconds(monkeypatch):
     monkeypatch.setattr(box, "audible_auth", lambda: object())
     monkeypatch.setattr(audible, "Client", FakeClient)
     monkeypatch.setattr(FakeClient, "error", None)
-    year = box.datetime.now().year
+    year = box.current_year()
     assert box.audible_listening_line() == f"listened 35h 28m in {year} on Audible"
 
 
@@ -231,3 +242,67 @@ def test_corrupt_audible_secret_degrades_instead_of_crashing(monkeypatch, tmp_pa
     box.restore_audible_auth(str(dest))
     assert not dest.exists()
     assert "AUDIBLE_AUTH is not valid base64" in capsys.readouterr().err
+
+
+def test_footer_follows_the_calendar_year(monkeypatch):
+    """On 1 January the goal restarts, it must not keep counting last year."""
+    monkeypatch.setattr(box, "current_year", lambda: 2027)
+    assert box.build_body().splitlines()[-1] == "read 0 of 12 books in 2027"
+
+
+def test_missing_export_stops_the_run_and_never_touches_the_gist(monkeypatch, capsys):
+    calls = []
+    monkeypatch.setattr(box, "CSV_PATH", "typo/storygraph_export.csv")
+    monkeypatch.setattr(box, "update_gist", lambda body: calls.append(body))
+    monkeypatch.delenv("INPUT_DRY_RUN", raising=False)
+    assert box.main() == 1
+    assert calls == []
+    assert "StoryGraph export not found" in capsys.readouterr().err
+
+
+def test_a_foreign_csv_is_rejected_before_it_can_overwrite_the_gist(monkeypatch, tmp_path, capsys):
+    calls = []
+    other = tmp_path / "goodreads.csv"
+    other.write_text("Book Id,Title,Author\n1,Dune,Frank Herbert\n")
+    monkeypatch.setattr(box, "CSV_PATH", str(other))
+    monkeypatch.setattr(box, "update_gist", lambda body: calls.append(body))
+    monkeypatch.delenv("INPUT_DRY_RUN", raising=False)
+    assert box.main() == 1
+    assert calls == []
+    assert "does not look like a StoryGraph export" in capsys.readouterr().err
+
+
+def test_dry_run_prints_the_body_and_skips_the_gist(monkeypatch, capsys):
+    calls = []
+    monkeypatch.setattr(box, "update_gist", lambda body: calls.append(body))
+    monkeypatch.setenv("INPUT_DRY_RUN", "true")
+    assert box.main() == 0
+    assert calls == []
+    assert capsys.readouterr().out.startswith("latest reads\n")
+
+
+def test_a_real_run_updates_the_gist_once(monkeypatch):
+    calls = []
+    monkeypatch.setattr(box, "update_gist", lambda body: calls.append(body))
+    monkeypatch.delenv("INPUT_DRY_RUN", raising=False)
+    assert box.main() == 0
+    assert len(calls) == 1 and calls[0].startswith("latest reads\n")
+
+
+def test_header_only_export_renders_an_empty_gist(monkeypatch, tmp_path):
+    empty = tmp_path / "empty.csv"
+    empty.write_text("Title,Authors,Read Status\n")
+    monkeypatch.setattr(box, "CSV_PATH", str(empty))
+    monkeypatch.setattr(box, "GOAL_BOOKS", "")
+    assert box.build_body().strip() == "latest reads"
+
+
+def test_a_malformed_audible_secret_degrades_instead_of_crashing(monkeypatch, tmp_path, capsys):
+    """Valid base64 that is not an auth file used to raise outside the try block."""
+    bad = tmp_path / "auth.json"
+    bad.write_text('{"k": 1}')
+    monkeypatch.setenv("AUDIBLE_AUTH_FILE", str(bad))
+    body = box.build_body()
+    assert body.startswith("latest reads")
+    assert "on Audible" not in body
+    assert "Audible stats unavailable" in capsys.readouterr().err

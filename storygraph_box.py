@@ -26,9 +26,12 @@ CSV_PATH = os.environ.get("INPUT_CSV_PATH", "storygraph_export.csv")
 GIST_ID = os.environ.get("INPUT_GIST_ID") or os.environ.get("GIST_ID", "")
 GH_TOKEN = os.environ.get("GH_TOKEN", "")
 AUDIBLE_AUTH_FILE = os.environ.get("AUDIBLE_AUTH_FILE", "")
-AUDIBLE_LOCALE = os.environ.get("INPUT_AUDIBLE_LOCALE", "uk")
 GOAL_BOOKS = os.environ.get("INPUT_GOAL_BOOKS", "").strip()
-HEADER_HINTS = ("Read Status", "Dates Read")
+REQUIRED_COLUMNS = ("title", "read status")
+
+
+def current_year() -> int:
+    return datetime.now().year
 
 
 def pick(row: dict, *names: str) -> str:
@@ -40,10 +43,17 @@ def pick(row: dict, *names: str) -> str:
 
 
 def load_rows() -> list[dict]:
-    if CSV_PATH and os.path.exists(CSV_PATH):
-        with open(CSV_PATH, newline="", encoding="utf-8-sig") as fh:
-            return list(csv.DictReader(fh))
-    return []
+    if not os.path.exists(CSV_PATH):
+        raise FileNotFoundError(f"StoryGraph export not found at {CSV_PATH!r}, check csv_path")
+    with open(CSV_PATH, newline="", encoding="utf-8-sig") as fh:
+        reader = csv.DictReader(fh)
+        columns = {name.strip().lower() for name in (reader.fieldnames or []) if name}
+        if not all(column in columns for column in REQUIRED_COLUMNS):
+            raise ValueError(
+                f"{CSV_PATH!r} does not look like a StoryGraph export, "
+                f"expected the columns {', '.join(REQUIRED_COLUMNS)}"
+            )
+        return list(reader)
 
 
 def book_line(row: dict) -> str:
@@ -74,10 +84,6 @@ def parse_date(value: str):
 def build_body() -> str:
     rows = load_rows()
     lines = ["latest reads", ""]
-
-    if not rows:
-        lines.append("⏳ waiting for the StoryGraph CSV export")
-        return "\n".join(lines)
 
     finished, reading = [], []
     for row in rows:
@@ -114,7 +120,7 @@ def build_body() -> str:
 
     stats_footer = []
     if GOAL_BOOKS:
-        year = datetime.now().year
+        year = current_year()
         done = sum(1 for d, _ in finished if d.year == year)
         stats_footer.append(f"read {done} of {GOAL_BOOKS} books in {year}")
     listening = audible_listening_line()
@@ -154,23 +160,23 @@ def audible_auth():
 
 
 def audible_listening_line():
-    auth = audible_auth()
-    if auth is None:
-        return None
     try:
+        auth = audible_auth()
+        if auth is None:
+            return None
         import audible
 
         with audible.Client(auth=auth) as client:
             stats = client.get(
                 "1.0/stats/aggregates",
                 monthly_listening_interval_duration="12",
-                monthly_listening_interval_start_date=f"{datetime.now().year}-01",
+                monthly_listening_interval_start_date=f"{current_year()}-01",
                 store="Audible",
             )
         months = stats.get("aggregated_monthly_listening_stats", [])
         total_minutes = sum(int(m.get("aggregated_sum") or 0) for m in months) // 60000
         hours, minutes = divmod(total_minutes, 60)
-        year = datetime.now().year
+        year = current_year()
         return f"listened {hours}h {minutes:02d}m in {year} on Audible"
     except Exception as error:  # noqa: BLE001, any failure means skip the line gracefully
         print(f"storygraph-box, Audible stats unavailable, {error}", file=sys.stderr)
@@ -203,6 +209,19 @@ def restore_audible_auth(dest: str = "/tmp/audible_auth.json") -> None:
     os.environ["AUDIBLE_AUTH_FILE"] = dest
 
 
-if __name__ == "__main__":
+def main() -> int:
     restore_audible_auth()
-    update_gist(build_body())
+    try:
+        body = build_body()
+    except (FileNotFoundError, ValueError) as error:
+        print(f"storygraph-box, {error}", file=sys.stderr)
+        return 1
+    if os.environ.get("INPUT_DRY_RUN", "").strip().lower() == "true":
+        print(body)
+        return 0
+    update_gist(body)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
