@@ -191,10 +191,25 @@ def update_gist(body: str) -> None:
     gist.edit(files={filename: InputFileContent(body)})
 
 
-if __name__ == "__main__":
+def restore_audible_auth(dest: str = "/tmp/audible_auth.json") -> None:
+    """Decode the AUDIBLE_AUTH secret to a file and point AUDIBLE_AUTH_FILE at it.
+
+    A malformed secret must not take the whole run down, the Audible line is
+    optional, so it degrades to a warning like every other Audible failure.
+    """
     auth_b64 = os.environ.get("AUDIBLE_AUTH", "")
-    if auth_b64:
-        with open("/tmp/audible_auth.json", "wb") as fh:
-            fh.write(base64.b64decode(auth_b64))
-        os.environ["AUDIBLE_AUTH_FILE"] = "/tmp/audible_auth.json"
+    if not auth_b64:
+        return
+    try:
+        data = base64.b64decode(auth_b64, validate=True)
+    except ValueError as error:
+        print(f"storygraph-box, AUDIBLE_AUTH is not valid base64, {error}", file=sys.stderr)
+        return
+    with open(dest, "wb") as fh:
+        fh.write(data)
+    os.environ["AUDIBLE_AUTH_FILE"] = dest
+
+
+if __name__ == "__main__":
+    restore_audible_auth()
     update_gist(build_body())

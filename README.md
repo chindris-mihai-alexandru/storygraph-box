@@ -60,6 +60,7 @@ on:
 jobs:
   update-reads:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: YOUR_USERNAME/storygraph-box@main

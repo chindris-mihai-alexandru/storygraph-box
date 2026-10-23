@@ -1,5 +1,6 @@
 import os
 import sys
+from typing import ClassVar
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -104,3 +105,79 @@ def test_zero_wrap_keeps_one_line_per_book(monkeypatch):
     line = box.book_line(rows[0])
     assert line == long_line
     assert "\n" not in line
+
+
+class FakeClient:
+    """Stands in for audible.Client so the Audible path runs without a network."""
+
+    payload: ClassVar[dict] = {
+        "aggregated_monthly_listening_stats": [{"aggregated_sum": 127_680_000}]
+    }
+    error = None
+
+    def __init__(self, auth):
+        self.auth = auth
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def get(self, path, **kwargs):
+        if FakeClient.error:
+            raise FakeClient.error
+        return FakeClient.payload
+
+
+def test_audible_line_converts_milliseconds(monkeypatch):
+    import audible
+
+    monkeypatch.setattr(box, "audible_auth", lambda: object())
+    monkeypatch.setattr(audible, "Client", FakeClient)
+    monkeypatch.setattr(FakeClient, "error", None)
+    year = box.datetime.now().year
+    assert box.audible_listening_line() == f"listened 35h 28m in {year} on Audible"
+
+
+def test_audible_failure_warns_and_skips(monkeypatch, capsys):
+    import audible
+
+    monkeypatch.setattr(box, "audible_auth", lambda: object())
+    monkeypatch.setattr(audible, "Client", FakeClient)
+    monkeypatch.setattr(FakeClient, "error", RuntimeError("boom"))
+    assert box.audible_listening_line() is None
+    assert "Audible stats unavailable, boom" in capsys.readouterr().err
+
+
+def test_auth_file_path_is_read_from_the_live_environment(monkeypatch, tmp_path):
+    """Regression, the path used to be captured at import time and stayed empty."""
+    import audible
+
+    auth_file = tmp_path / "auth.json"
+    auth_file.write_text("{}")
+    sentinel = object()
+    monkeypatch.setattr(box, "AUDIBLE_AUTH_FILE", "")
+    monkeypatch.setattr(audible.Authenticator, "from_file", lambda path: sentinel)
+    monkeypatch.setenv("AUDIBLE_AUTH_FILE", str(auth_file))
+    assert box.audible_auth() is sentinel
+
+
+def test_restore_audible_auth_decodes_the_secret(monkeypatch, tmp_path):
+    import base64
+
+    dest = tmp_path / "restored.json"
+    monkeypatch.delenv("AUDIBLE_AUTH_FILE", raising=False)
+    monkeypatch.setenv("AUDIBLE_AUTH", base64.b64encode(b'{"k": 1}').decode())
+    box.restore_audible_auth(str(dest))
+    assert dest.read_bytes() == b'{"k": 1}'
+    assert os.environ["AUDIBLE_AUTH_FILE"] == str(dest)
+
+
+def test_corrupt_audible_secret_degrades_instead_of_crashing(monkeypatch, tmp_path, capsys):
+    dest = tmp_path / "restored.json"
+    monkeypatch.delenv("AUDIBLE_AUTH_FILE", raising=False)
+    monkeypatch.setenv("AUDIBLE_AUTH", "!!! not base64 !!!")
+    box.restore_audible_auth(str(dest))
+    assert not dest.exists()
+    assert "AUDIBLE_AUTH is not valid base64" in capsys.readouterr().err
