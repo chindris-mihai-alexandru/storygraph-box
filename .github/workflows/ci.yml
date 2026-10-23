@@ -5,6 +5,8 @@ on:
     branches: [ main ]
   pull_request:
   workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1'
 
 jobs:
   test:
@@ -15,7 +17,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install dependencies
-        run: pip install "audible[cryptography]" PyGithub pytest ruff
+        run: pip install -r requirements-dev.txt
       - name: Lint
         run: ruff check storygraph_box.py tests
       - name: Test
@@ -44,3 +46,16 @@ jobs:
           grep -q "Project Hail Mary by Andy Weir" out.txt
           grep -Eq "^read [0-9]+ of 12 books in [0-9]{4}$" out.txt
           if grep -q Traceback err.txt; then cat err.txt; exit 1; fi
+
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Audit the pinned runtime dependencies
+        run: |
+          pip install pip-audit
+          pip-audit -r requirements.txt --strict

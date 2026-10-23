@@ -104,6 +104,7 @@ Audible authentication takes either route. The full auth file is the simplest, w
 ## Notes and honest limitations
 
 - StoryGraph has no official API. This tool uses the official CSV export, which means one manual download per refresh. If StoryGraph ever ships an API, this becomes a ten-line change. Show your support on the official roadmap post, [An API](https://roadmap.thestorygraph.com/features/posts/an-api), open since 2021.
+- Two other roadmap posts would close the remaining gaps if they ship. [Export your stats into CSV/Excel](https://roadmap.thestorygraph.com/requests-ideas/posts/export-your-stats-into-csv-excel) asks for reading journal data, which is what a progress bar would need, and the bug [Export mangles non-ASCII characters](https://roadmap.thestorygraph.com/bugs/posts/export-mangles-non-ascii-characters) can garble accented titles in the file.
 - The export carries moods, pace, ratings, reviews, tags and read dates for every book, but no reading progress, journal entries or aggregate stats. That is why there is no progress bar here, a currently-reading book shows as a title only.
 - Audible stats come from Audible's internal API through the `audible` package. It works today, it is unofficial, and a one-time external login is all it takes.
 

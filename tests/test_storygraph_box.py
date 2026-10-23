@@ -306,3 +306,26 @@ def test_a_malformed_audible_secret_degrades_instead_of_crashing(monkeypatch, tm
     assert body.startswith("latest reads")
     assert "on Audible" not in body
     assert "Audible stats unavailable" in capsys.readouterr().err
+
+
+def test_unrecognized_status_is_reported_not_silently_dropped(monkeypatch, tmp_path, capsys):
+    export = tmp_path / "export.csv"
+    export.write_text("Title,Authors,Read Status\nA,B,paused\nC,D,paused\nE,F,read\n")
+    monkeypatch.setattr(box, "CSV_PATH", str(export))
+    monkeypatch.setattr(box, "GOAL_BOOKS", "")
+    body = box.build_body()
+    assert "A by B" not in body
+    assert "ignoring 2 row(s) with the unrecognized Read Status 'paused'" in capsys.readouterr().err
+
+
+def test_known_statuses_stay_quiet(capsys):
+    box.build_body()
+    assert "unrecognized" not in capsys.readouterr().err
+
+
+def test_non_ascii_titles_survive_the_round_trip(monkeypatch, tmp_path):
+    export = tmp_path / "export.csv"
+    export.write_bytes("Title,Authors,Read Status,Last Date Read\nŞocul întoarcerii în ţară,Neagu Djuvara,read,2026/05/01\n".encode())
+    monkeypatch.setattr(box, "CSV_PATH", str(export))
+    monkeypatch.setattr(box, "GOAL_BOOKS", "")
+    assert "Şocul întoarcerii în ţară by Neagu Djuvara" in box.build_body()

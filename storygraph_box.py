@@ -28,6 +28,7 @@ GH_TOKEN = os.environ.get("GH_TOKEN", "")
 AUDIBLE_AUTH_FILE = os.environ.get("AUDIBLE_AUTH_FILE", "")
 GOAL_BOOKS = os.environ.get("INPUT_GOAL_BOOKS", "").strip()
 REQUIRED_COLUMNS = ("title", "read status")
+KNOWN_STATUSES = {"read", "finished", "currently reading", "to read", "did not finish"}
 
 
 def current_year() -> int:
@@ -85,7 +86,7 @@ def build_body() -> str:
     rows = load_rows()
     lines = ["latest reads", ""]
 
-    finished, reading = [], []
+    finished, reading, unknown = [], [], {}
     for row in rows:
         status = normalize_status(pick(row, "read status", "status"))
         if status == "currently reading":
@@ -94,7 +95,12 @@ def build_body() -> str:
             date_value = pick(row, "date finished", "last date read", "date read")
             date = parse_date(date_value) if date_value else None
             finished.append((date or datetime.min, row))
+        elif status and status not in KNOWN_STATUSES:
+            unknown[status] = unknown.get(status, 0) + 1
         # to-read and did-not-finish rows are deliberately left out
+
+    for status, count in unknown.items():
+        print(f"storygraph-box, ignoring {count} row(s) with the unrecognized Read Status {status!r}", file=sys.stderr)
 
     if reading:
         lines.append("Currently reading:")
