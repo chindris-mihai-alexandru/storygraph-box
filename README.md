@@ -101,6 +101,22 @@ Refresh the CSV export whenever you want fresh data, commit or upload the new fi
 
 Audible authentication takes either route. The full auth file is the simplest, while the two-field pattern keeps only the signing credentials in secrets and lets the runner build an ephemeral auth object. If both are present, the auth file wins.
 
+## Run it from your own machine
+
+The Action is optional. The same script runs anywhere with Python 3.12 and the pinned dependencies, which keeps your export out of git entirely. Your export holds your reviews and your whole library, so a public repository is the wrong place for it.
+
+```
+uv run --no-project --with-requirements requirements.txt python storygraph_box.py
+```
+
+Pass the same inputs as environment variables with an `INPUT_` prefix, for example `INPUT_CSV_PATH`, `INPUT_GIST_ID`, `INPUT_GOAL_BOOKS` and `INPUT_WRAP_WIDTH`, plus `GH_TOKEN` with the gist scope. Set `INPUT_DRY_RUN=true` to print the result instead of updating the gist.
+
+## Keeping the export fresh
+
+StoryGraph has no API, so the CSV has to come from the export page. When you press Generate export, the page shows a line like "Your export from 23 October 2026 - Download" after a minute or two. The Download link is a signed Google Cloud Storage address, so once you are logged in you can read the link from the page and fetch it with `curl`. StoryGraph sits behind Cloudflare, which tends to challenge datacenter addresses like GitHub's runners, so do the download from your own machine or an agent that drives your own browser.
+
+The signed address expires within minutes and contains your signature, so do not log it or commit it.
+
 ## Notes and honest limitations
 
 - StoryGraph has no official API. This tool uses the official CSV export, which means one manual download per refresh. If StoryGraph ever ships an API, this becomes a ten-line change. Show your support on the official roadmap post, [An API](https://roadmap.thestorygraph.com/features/posts/an-api), open since 2021.

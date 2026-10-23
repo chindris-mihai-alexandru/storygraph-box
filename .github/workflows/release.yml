@@ -1,0 +1,52 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Run the checks before publishing anything
+        run: |
+          pip install -r requirements-dev.txt
+          ruff check .
+          pytest -q
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="$GITHUB_REF_NAME"
+          if [[ "$tag" == *-* ]]; then
+            # a release candidate such as v1.1.0-rc1, test it without touching v1
+            gh release create "$tag" --title "$tag" --generate-notes --prerelease --verify-tag
+            exit 0
+          fi
+          version="${tag#v}"
+          notes=$(awk -v v="$version" '
+            $0 ~ "^## \\[" v "\\]" { found = 1; next }
+            /^## \[/ { found = 0 }
+            found { print }
+          ' CHANGELOG.md)
+          if [ -z "$notes" ]; then
+            echo "CHANGELOG.md has no section for $version"
+            exit 1
+          fi
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release edit "$tag" --title "$tag" --notes "$notes"
+          else
+            gh release create "$tag" --title "$tag" --notes "$notes" --verify-tag
+          fi
+          major="${tag%%.*}"
+          git tag -f "$major" "$tag"
+          git push -f origin "$major"

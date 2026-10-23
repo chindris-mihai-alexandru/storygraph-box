@@ -5,3 +5,6 @@ audible_auth.json
 /*.csv
 .pytest_cache/
 .ruff_cache/
+
+# personal data and wrappers, never published
+/local/
