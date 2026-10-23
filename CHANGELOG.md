@@ -4,6 +4,11 @@ All notable changes are listed here, newest first. The release workflow publishe
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-10-24
+
+### Fixed
+- Shorten the compact audio label to `🎧 Listened` so more of the book title and author fits in the pinned card. No book data is removed.
+
 ## [1.2.0] - 2026-10-24
 
 ### Added

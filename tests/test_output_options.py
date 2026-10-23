@@ -24,7 +24,7 @@ def test_compact_parallel_reading_is_not_truncated(monkeypatch):
     assert "📖 Reading: The Name of the Wind by Patrick Rothfuss" in body
     assert body.count("📚 Also reading:") == 3
     assert "🏁 Last read: Project Hail Mary by Andy Weir" in body
-    assert "🎧 Last listened: Dune by Frank Herbert" in body
+    assert "🎧 Listened: Dune by Frank Herbert" in body
     assert "📅 2026: 3/12 books" in body
     assert "📊 Export: 6 finished books" in body
     assert "pages" not in body and "Infinite Jest" not in body
