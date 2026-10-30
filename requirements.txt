@@ -2,7 +2,7 @@
 #    uv pip compile requirements.in --python-version 3.12 -o requirements.txt
 anyio==4.15.1
     # via httpx
-audible==0.13.0
+audible[cryptography]==0.13.1
     # via -r requirements.in
 beautifulsoup4==4.15.0
     # via audible
@@ -46,7 +46,7 @@ pycparser==3.12
     # via cffi
 pygithub==2.10.0
     # via -r requirements.in
-pyjwt==2.15.1
+pyjwt[crypto]==2.15.1
     # via pygithub
 pynacl==1.6.2
     # via pygithub
